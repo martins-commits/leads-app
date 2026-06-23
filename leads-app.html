@@ -1,0 +1,3424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Prospecção WhatsApp</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* ============ VARIÁVEIS ============ */
+  :root {
+    --bg: #0A0A0A;
+    --bg-elevated: #161616;
+    --bg-card: #1C1C1C;
+    --bg-card-hover: #222222;
+    --accent: #1A4B8C;
+    --accent-hover: #2360AB;
+    --accent-soft: rgba(26, 75, 140, 0.15);
+    --text: #ECECEC;
+    --text-muted: #8A8A8A;
+    --text-dim: #5F5F5F;
+    --border: #2A2A2A;
+    --success: #2E7D32;
+    --success-bg: rgba(46, 125, 50, 0.18);
+    --warning: #F9A825;
+    --warning-bg: rgba(249, 168, 37, 0.18);
+    --warning-dark: #B86B00;
+    --warning-dark-bg: rgba(184, 107, 0, 0.22);
+    --orange: #E65100;
+    --orange-bg: rgba(230, 81, 0, 0.22);
+    --danger: #C62828;
+    --danger-bg: rgba(198, 40, 40, 0.18);
+    --radius: 14px;
+    --radius-sm: 10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ============ RESET ============ */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.4;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
+  button { cursor: pointer; border: none; background: none; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+
+  /* ============ HEADER ============ */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px 12px;
+  }
+  .app-title {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .app-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .app-title .sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Contadores */
+  .counters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  /* Grid de 6 contadores (Parte 4) */
+  .counters-grid6 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .counter {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.08s;
+    position: relative;
+    overflow: hidden;
+  }
+  .counter:active { transform: scale(0.96); }
+  .counter.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .counter::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--border);
+  }
+  .counter.c-total::before { background: var(--text-muted); }
+  .counter.c-pending::before { background: #4CAF50; }
+  .counter.c-fu1::before { background: #FF8F00; }
+  .counter.c-fu2::before { background: #E65100; }
+  .counter.c-interested::before { background: var(--success); }
+  .counter.c-discarded::before { background: var(--danger); }
+  .counter .num {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .counter .lbl {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 600;
+  }
+  .counter.c-total .num { color: var(--text); }
+  .counter.c-pending .num { color: #6BC16F; }
+  .counter.c-fu1 .num { color: #FFB74D; }
+  .counter.c-fu2 .num { color: #FF8A65; }
+  .counter.c-interested .num { color: #6BC16F; }
+  .counter.c-discarded .num { color: #EF6666; }
+  .counter.c-total .num.zero { color: var(--text-muted); }
+  .counter .num.zero { opacity: 0.4; }
+
+  /* Resumo de atividade hoje */
+  .today-summary {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 4px;
+  }
+  .today-item {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 4px;
+  }
+  .today-num {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .today-num.zero { color: var(--text-muted); opacity: 0.5; }
+  .today-lbl {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .today-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--border);
+    margin: 0 2px;
+  }
+
+  /* ============ AÇÕES ============ */
+  .actions {
+    padding: 14px 16px 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 15px;
+    min-height: 52px;
+    transition: transform 0.08s, background 0.15s, opacity 0.15s;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary {
+    background: var(--bg-card);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-card-hover); }
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border-color: var(--danger);
+    grid-column: span 2;
+  }
+  .btn-danger:hover { background: var(--danger-bg); }
+  .btn-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* ============ FILTROS ============ */
+  .filters {
+    padding: 8px 16px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .filters .full { grid-column: span 2; }
+  .search-wrap {
+    grid-column: span 2;
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px 12px 40px;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap .ico {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+  select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 32px 12px 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8A8A' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* ============ LISTA ============ */
+  .leads-meta {
+    padding: 4px 16px 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .leads-meta b { color: var(--text); font-weight: 600; }
+
+  .leads-list {
+    padding: 0 16px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Card de lead */
+  .lead-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    transition: background 0.15s, border-color 0.3s, opacity 0.3s;
+  }
+  .lead-card:hover { background: var(--bg-card-hover); }
+  .lead-card.priority { border-left-color: var(--warning); }
+  .lead-card.invalid { border-left-color: var(--danger); opacity: 0.85; }
+  .lead-card.own-site { border-left-color: var(--accent); }
+  /* Status após abordagem */
+  .lead-card.status-waiting { border-left-color: #FFC107; background: rgba(255, 193, 7, 0.05); }
+  /* Parte 3 — cores para follow-ups */
+  .lead-card.status-fu1-ready { border-left-color: #FF8F00; background: rgba(255, 143, 0, 0.08); }
+  .lead-card.status-fu1-sent { border-left-color: #FFA000; background: rgba(255, 160, 0, 0.04); }
+  .lead-card.status-fu2-ready { border-left-color: #E65100; background: rgba(230, 81, 0, 0.1); }
+  .lead-card.status-fu2-sent { border-left-color: #6A1B9A; background: rgba(106, 27, 154, 0.06); opacity: 0.7; }
+  .lead-card.status-discarded { border-left-color: var(--danger); opacity: 0.5; }
+  .lead-card.status-interested { border-left-color: var(--success); background: rgba(46, 125, 50, 0.08); }
+  /* Quando tem timer ativo travando esse lead */
+  .lead-card.is-locked { opacity: 0.55; pointer-events: none; }
+  .lead-card.is-locked .btn-abordagem { background: var(--bg-elevated); color: var(--text-dim); }
+
+  .lead-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .lead-name {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    flex: 1;
+    word-break: break-word;
+  }
+  .lead-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-pending { background: rgba(76, 175, 80, 0.18); color: #6BC16F; }
+  .status-invalid { background: var(--danger-bg); color: #EF6666; }
+  .status-waiting { background: rgba(255, 193, 7, 0.2); color: #FFD54F; }
+  .status-locked { background: var(--bg-elevated); color: var(--text-dim); }
+  .status-fu1-ready { background: rgba(255, 143, 0, 0.25); color: #FFB74D; }
+  .status-fu1-sent { background: rgba(255, 160, 0, 0.18); color: #FFCC80; }
+  .status-fu2-ready { background: rgba(230, 81, 0, 0.3); color: #FFAB91; }
+  .status-fu2-sent { background: rgba(106, 27, 154, 0.2); color: #CE93D8; }
+  .status-discarded { background: var(--danger-bg); color: #EF6666; text-decoration: line-through; }
+  .status-interested { background: var(--success-bg); color: #6BC16F; }
+
+  /* Botão de follow-up (laranja) */
+  .btn-followup {
+    width: 100%;
+    background: linear-gradient(135deg, #FB8C00, #E65100);
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 14px;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .btn-followup:active { transform: scale(0.97); }
+  .btn-followup.is-fu2 { background: linear-gradient(135deg, #E65100, #BF360C); }
+  .btn-followup.is-locked { background: var(--bg-elevated); color: var(--text-dim); cursor: not-allowed; }
+
+  /* Botões pequenos de ação (descartar/interessado) */
+  .lead-mini-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .btn-mini {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .btn-mini:active { transform: scale(0.97); }
+  .btn-mini.btn-discard { color: var(--danger); border-color: var(--danger); }
+  .btn-mini.btn-discard:hover { background: var(--danger-bg); }
+  .btn-mini.btn-interest { color: var(--success); border-color: var(--success); }
+  .btn-mini.btn-interest:hover { background: var(--success-bg); }
+  .btn-mini.btn-undo { color: var(--text); border-color: var(--border); }
+
+  /* Painel de configuração (Parte 3) */
+  .config-panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0 16px 16px;
+    overflow: hidden;
+  }
+  .config-header {
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .config-header h3 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .config-header .toggle {
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+  .config-panel.open .toggle { transform: rotate(180deg); }
+  .config-body {
+    padding: 16px;
+    display: none;
+  }
+  .config-panel.open .config-body { display: block; }
+  .config-field {
+    margin-bottom: 14px;
+  }
+  .config-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .config-field textarea,
+  .config-field input[type="number"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    line-height: 1.5;
+  }
+  .config-field textarea {
+    min-height: 70px;
+    resize: vertical;
+  }
+  .config-field textarea:focus,
+  .config-field input[type="number"]:focus { border-color: var(--accent); }
+  .config-field input[type="number"] {
+    max-width: 100px;
+    text-align: center;
+  }
+  .config-days-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .config-save-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-config-save {
+    flex: 1;
+    background: var(--accent);
+    color: #fff;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 13px;
+    min-height: 44px;
+  }
+  .btn-config-reset {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  /* Botão grande "Mandar Abordagem" */
+  .btn-abordagem {
+    width: 100%;
+    background: #25D366;
+    color: #0A0A0A;
+    border: none;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    font-weight: 800;
+    font-size: 16px;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.08s, background 0.15s, opacity 0.15s;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .btn-abordagem:active { transform: scale(0.97); }
+  .btn-abordagem:disabled,
+  .btn-abordagem.is-locked {
+    background: var(--bg-elevated);
+    color: var(--text-dim);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn-abordagem .wa-ico-big {
+    width: 22px; height: 22px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/></svg>") center/contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/></svg>") center/contain no-repeat;
+  }
+  .btn-abordagem.is-locked .lock-countdown {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--warning);
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Timer overlay flutuante (contagem regressiva global) */
+  .timer-overlay {
+    position: fixed;
+    bottom: calc(20px + var(--safe-bottom));
+    left: 16px;
+    right: 16px;
+    background: linear-gradient(135deg, #B86B00, #E65100);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    z-index: 90;
+    box-shadow: 0 8px 32px rgba(230, 81, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: slideUp 0.3s ease;
+  }
+  .timer-overlay .timer-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .timer-overlay .timer-content { flex: 1; min-width: 0; }
+  .timer-overlay .timer-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+  .timer-overlay .timer-countdown {
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+  }
+  .timer-overlay .timer-info {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+  .timer-overlay .timer-skip {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .timer-overlay .timer-skip:active { transform: scale(0.95); }
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .lead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .lead-meta .item { display: flex; align-items: center; gap: 4px; }
+  .lead-meta .item b { color: var(--text); font-weight: 600; }
+  .lead-meta .city-ico::before { content: "📍"; margin-right: 2px; }
+  .lead-meta .phone-ico::before { content: "📱"; margin-right: 2px; }
+  .lead-meta .web-ico::before { content: "🌐"; margin-right: 2px; }
+
+  .web-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .web-semsite { background: var(--warning-bg); color: var(--warning); }
+  .web-own { background: var(--accent-soft); color: #5B9BE0; }
+  .web-social { background: rgba(138, 138, 138, 0.18); color: var(--text-muted); }
+  .web-app { background: rgba(155, 89, 182, 0.2); color: #C39BD3; }
+
+  .lead-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    align-items: stretch;
+  }
+  .lead-link {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: #25D366;
+    color: #0A0A0A;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 14px;
+    min-height: 48px;
+    text-align: center;
+  }
+  .lead-link:active { transform: scale(0.97); }
+  .lead-link.disabled {
+    background: var(--bg-elevated);
+    color: var(--text-dim);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn-copy {
+    flex: 0 0 48px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    transition: background 0.15s, color 0.15s, transform 0.08s;
+  }
+  .btn-copy:active { transform: scale(0.95); }
+  .btn-copy:hover { background: var(--bg-card-hover); color: var(--text); }
+  .btn-copy.copied { background: var(--success-bg); color: #6BC16F; border-color: var(--success); }
+  .lead-link .wa-ico {
+    width: 18px; height: 18px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/></svg>") center/contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/></svg>") center/contain no-repeat;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+  }
+  .empty-state .emoji {
+    font-size: 56px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  .empty-state h3 {
+    color: var(--text);
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  .empty-state p { font-size: 14px; max-width: 320px; margin: 0 auto; }
+
+  /* Toast */
+  .toast-container {
+    position: fixed;
+    bottom: calc(20px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    width: calc(100% - 32px);
+    max-width: 480px;
+  }
+  .toast {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    animation: slideUp 0.25s ease;
+    pointer-events: auto;
+  }
+  .toast.success { border-left-color: var(--success); }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.warning { border-left-color: var(--warning); }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Modal confirm */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal h3 { font-size: 18px; margin-bottom: 8px; }
+  .modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+  .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal .btn-cancel {
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    min-height: 48px;
+  }
+  .modal .btn-confirm {
+    background: var(--danger);
+    color: #fff;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    min-height: 48px;
+  }
+
+  /* Modal paste CSV */
+  .modal-paste {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-paste h3 {
+    font-size: 18px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-paste .desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .modal-paste textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 12px;
+    min-height: 220px;
+    resize: vertical;
+    outline: none;
+    line-height: 1.5;
+  }
+  .modal-paste textarea:focus { border-color: var(--accent); }
+  .modal-paste textarea::placeholder { color: var(--text-dim); }
+  .modal-paste-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .modal-paste-actions .btn-cancel {
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    min-height: 48px;
+  }
+  .modal-paste-actions .btn-confirm {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    min-height: 48px;
+  }
+  .modal-paste-actions .btn-confirm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .paste-hint {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* Tela de login */
+  .login-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .login-overlay.hidden { display: none; }
+  .login-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  .login-card .logo {
+    font-size: 40px;
+    margin-bottom: 16px;
+  }
+  .login-card h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+  .login-card .sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .login-card input[type="email"],
+  .login-card input[type="password"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .login-card input[type="email"]:focus,
+  .login-card input[type="password"]:focus { border-color: var(--accent); }
+  .login-card .btn-login {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 15px;
+    min-height: 52px;
+    margin-bottom: 10px;
+  }
+  .login-card .btn-login:active { transform: scale(0.97); }
+  .login-card .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-card .btn-signup {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .login-card .btn-signup:hover { background: var(--bg-card); border-color: var(--accent); }
+  .login-card .info {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .login-card .success-msg {
+    background: var(--success-bg);
+    border: 1px solid var(--success);
+    color: #6BC16F;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    text-align: left;
+  }
+  .login-card .error-msg {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    color: #EF6666;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    text-align: left;
+  }
+  .login-card .error-msg code {
+    background: rgba(0,0,0,0.3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    word-break: break-all;
+  }
+  .conn-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .conn-status .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .conn-status .dot.pulsing {
+    background: var(--warning);
+    animation: pulse 1s infinite;
+  }
+  .conn-status.ok .dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .conn-status.ok { color: #6BC16F; }
+  .conn-status.err .dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .conn-status.err { color: #EF6666; }
+
+  /* Status bar (logado, sync, etc) */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .status-bar .user-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .status-bar .user-email {
+    color: var(--text);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
+  .status-bar .sync-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+  }
+  .status-bar .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+  }
+  .status-bar .sync-dot.syncing { background: var(--warning); box-shadow: 0 0 6px var(--warning); animation: pulse 1s infinite; }
+  .status-bar .sync-dot.offline { background: var(--text-dim); box-shadow: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .btn-logout {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .btn-logout:hover { color: var(--danger); border-color: var(--danger); }
+  .btn-sync-local {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning);
+    color: var(--warning);
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 14px;
+    width: 100%;
+    min-height: 52px;
+    margin-bottom: 8px;
+    grid-column: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-sync-local:hover { background: rgba(249, 168, 37, 0.28); }
+
+  /* Esconde elementos */
+  .hidden { display: none !important; }
+
+  /* Banner de aviso (iframe / preview) */
+  .iframe-banner {
+    background: linear-gradient(90deg, rgba(184, 107, 0, 0.18), rgba(230, 81, 0, 0.18));
+    border-bottom: 1px solid var(--warning-dark);
+    color: var(--text);
+    padding: 10px 16px;
+    font-size: 13px;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .iframe-banner .ico { font-size: 18px; flex-shrink: 0; }
+  .iframe-banner .txt { flex: 1; }
+  .iframe-banner .txt b { color: var(--warning); }
+  .iframe-banner .dismiss {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Pequeno footer info */
+  .footer-info {
+    text-align: center;
+    padding: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="iframe-banner hidden" id="iframe-banner">
+  <span class="ico">⚠️</span>
+  <span class="txt">
+    Você está usando o app dentro de uma <b>preview embutida</b>. Os links do WhatsApp podem ser bloqueados pelo navegador. <b>Baixe o arquivo HTML</b> e abra no celular/desktop para funcionar 100%, ou use o botão <b>⧉</b> ao lado de cada lead para copiar o link.
+  </span>
+  <button class="dismiss" id="iframe-dismiss">OK</button>
+</div>
+
+<!-- TELA DE LOGIN -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="logo">📲</div>
+    <h1>Prospecção WhatsApp</h1>
+    <p class="sub">Acesse seus leads de qualquer dispositivo. Os dados ficam sincronizados na nuvem.</p>
+
+    <!-- Status de conexão (diagnóstico) -->
+    <div class="conn-status" id="conn-status">
+      <span class="dot pulsing"></span>
+      <span id="conn-status-text">Conectando à nuvem...</span>
+    </div>
+
+    <div class="success-msg hidden" id="login-success-msg"></div>
+    <div class="error-msg hidden" id="login-error-msg"></div>
+
+    <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+    <input type="password" id="login-password" placeholder="senha" autocomplete="current-password">
+    <button class="btn-login" id="login-btn">Entrar</button>
+    <button class="btn-login btn-signup" id="signup-btn">Criar conta</button>
+    <div class="info">
+      <b>Primeira vez?</b> Toque em "Criar conta". Use o mesmo login no PC e no celular — seus leads ficam sincronizados.<br>
+      <span style="opacity:0.7">Esqueci a senha: entre em contato pelo suporte.</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR (visível quando logado) -->
+<div class="status-bar hidden" id="status-bar">
+  <div class="user-info">
+    <span>👤</span>
+    <span class="user-email" id="user-email">—</span>
+  </div>
+  <div class="sync-status">
+    <span class="sync-dot" id="sync-dot"></span>
+    <span id="sync-text">Sincronizado</span>
+    <button class="btn-logout" id="logout-btn">Sair</button>
+  </div>
+</div>
+
+<header class="app-header">
+  <div class="app-title">
+    <span class="dot"></span>
+    Prospecção WhatsApp
+    <span class="sub">Painel · Partes 1-4</span>
+  </div>
+  <div class="counters counters-grid6">
+    <div class="counter c-total" data-filter="total">
+      <div class="num" id="c-total">0</div>
+      <div class="lbl">Total</div>
+    </div>
+    <div class="counter c-pending" data-filter="pending">
+      <div class="num" id="c-pending">0</div>
+      <div class="lbl">A abordar</div>
+    </div>
+    <div class="counter c-fu1" data-filter="fu1_ready">
+      <div class="num" id="c-fu1">0</div>
+      <div class="lbl">F1 pronto</div>
+    </div>
+    <div class="counter c-fu2" data-filter="fu2_ready">
+      <div class="num" id="c-fu2">0</div>
+      <div class="lbl">F2 pronto</div>
+    </div>
+    <div class="counter c-interested" data-filter="interested">
+      <div class="num" id="c-interested">0</div>
+      <div class="lbl">Interessados</div>
+    </div>
+    <div class="counter c-discarded" data-filter="discarded">
+      <div class="num" id="c-discarded">0</div>
+      <div class="lbl">Descartados</div>
+    </div>
+  </div>
+  <!-- Resumo de atividade hoje -->
+  <div class="today-summary" id="today-summary">
+    <div class="today-item">
+      <span class="today-num" id="today-abordagens">0</span>
+      <span class="today-lbl">Abordagens hoje</span>
+    </div>
+    <div class="today-divider"></div>
+    <div class="today-item">
+      <span class="today-num" id="today-fu1">0</span>
+      <span class="today-lbl">F1 hoje</span>
+    </div>
+    <div class="today-divider"></div>
+    <div class="today-item">
+      <span class="today-num" id="today-fu2">0</span>
+      <span class="today-lbl">F2 hoje</span>
+    </div>
+    <div class="today-divider"></div>
+    <div class="today-item">
+      <span class="today-num" id="today-interested">0</span>
+      <span class="today-lbl">Interessados hoje</span>
+    </div>
+  </div>
+</header>
+
+<section class="actions">
+  <label for="csv-input" class="btn btn-primary">
+    <span class="btn-icon">+</span> Importar CSV (arquivo)
+  </label>
+  <input type="file" id="csv-input" hidden>
+  <button id="paste-csv-btn" class="btn btn-primary">
+    <span class="btn-icon">⌨</span> Colar CSV
+  </button>
+  <button id="export-btn" class="btn btn-secondary">
+    <span class="btn-icon">↓</span> Exportar CSV
+  </button>
+  <button id="backup-btn" class="btn btn-secondary">
+    <span class="btn-icon">⬆</span> Backup JSON
+  </button>
+  <button id="restore-btn" class="btn btn-secondary">
+    <span class="btn-icon">⬇</span> Restaurar
+  </button>
+  <input type="file" id="restore-input" accept=".json,application/json" hidden>
+  <button id="sync-local-btn" class="btn-sync-local hidden">
+    <span class="btn-icon">☁</span> Sincronizar <span id="local-count">0</span> leads locais para a nuvem
+  </button>
+  <button id="clear-btn" class="btn btn-danger">
+    <span class="btn-icon">×</span> Limpar
+  </button>
+</section>
+
+<!-- PAINEL DE CONFIGURAÇÃO (Parte 3) -->
+<div class="config-panel" id="config-panel">
+  <div class="config-header" id="config-toggle">
+    <h3>⚙ Configurações de mensagens e follow-ups</h3>
+    <span class="toggle">▼</span>
+  </div>
+  <div class="config-body">
+    <div class="config-field">
+      <label>Mensagem de abordagem (envio inicial)</label>
+      <textarea id="cfg-msg-abordagem" rows="3"></textarea>
+    </div>
+    <div class="config-field">
+      <label>Mensagem de follow-up 1</label>
+      <textarea id="cfg-msg-fu1" rows="3"></textarea>
+    </div>
+    <div class="config-field">
+      <label>Mensagem de follow-up 2</label>
+      <textarea id="cfg-msg-fu2" rows="3"></textarea>
+    </div>
+    <div class="config-days-row">
+      <div class="config-field">
+        <label>Follow-up 1 pronto após (horas)</label>
+        <input type="number" id="cfg-fu1-horas" min="0" max="720" step="0.5">
+      </div>
+      <div class="config-field">
+        <label>Follow-up 2 pronto após (horas extras)</label>
+        <input type="number" id="cfg-fu2-horas" min="0" max="720" step="0.5">
+      </div>
+    </div>
+    <div class="config-save-row">
+      <button class="btn-config-save" id="cfg-save">💾 Salvar configurações</button>
+      <button class="btn-config-reset" id="cfg-reset">↺ Restaurar padrão</button>
+    </div>
+  </div>
+</div>
+
+<section class="filters">
+  <div class="search-wrap">
+    <span class="ico">⌕</span>
+    <input type="search" id="search-input" placeholder="Buscar por nome...">
+  </div>
+  <select id="city-filter">
+    <option value="">Todas as cidades</option>
+  </select>
+  <select id="website-filter">
+    <option value="">Todos os tipos</option>
+    <option value="Sem site">Sem site (prioridade)</option>
+    <option value="Site próprio">Site próprio</option>
+    <option value="Instagram">Instagram</option>
+    <option value="Facebook">Facebook</option>
+    <option value="Linktree">Linktree</option>
+    <option value="Booksy">Booksy</option>
+    <option value="App de agendamento">App de agendamento</option>
+    <option value="WhatsApp">WhatsApp</option>
+  </select>
+  <select id="status-filter" class="full">
+    <option value="">Todos os status</option>
+    <option value="valid">Com WhatsApp válido</option>
+    <option value="invalid">Sem WhatsApp válido</option>
+  </select>
+</section>
+
+<div class="leads-meta">
+  <span>Mostrando <b id="shown-count">0</b> de <b id="list-total">0</b> leads</span>
+  <span id="priority-hint"></span>
+</div>
+
+<main class="leads-list" id="leads-list"></main>
+
+<div class="empty-state hidden" id="empty-state">
+  <div class="emoji">📭</div>
+  <h3>Nenhum lead importado</h3>
+  <p>Toque em <b>"Importar CSV (GBolt)"</b> para carregar sua lista de leads. Suporte a múltiplas importações — duplicados pelo telefone são ignorados automaticamente.</p>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<div class="modal-backdrop" id="modal-clear">
+  <div class="modal">
+    <h3>Limpar todos os leads?</h3>
+    <p>Esta ação remove todos os leads importados e o histórico. Não pode ser desfeito.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modal-cancel">Cancelar</button>
+      <button class="btn-confirm" id="modal-confirm">Limpar tudo</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-paste">
+  <div class="modal-paste">
+    <h3>⌨ Colar conteúdo CSV</h3>
+    <p class="desc">
+      Cole abaixo o conteúdo de um arquivo CSV no formato GBolt
+      (<b>Name, Phone, Website, City</b>). Útil no celular: copie o CSV do Google Drive ou email e cole aqui.
+    </p>
+    <textarea id="paste-csv-textarea" placeholder="Name,Phone,Website,City&#10;Barbearia Silva LTDA,(11) 98765-4321,,São Paulo&#10;Petshop Amigo ME,(11) 97654-3210,https://instagram.com/petshop,São Paulo&#10;..."></textarea>
+    <div class="paste-hint">
+      Dica: o cabeçalho <code>Name,Phone,Website,City</code> é necessário. Os leads duplicados (mesmo telefone) são ignorados automaticamente.
+    </div>
+    <div class="modal-paste-actions">
+      <button class="btn-cancel" id="paste-cancel">Cancelar</button>
+      <button class="btn-confirm" id="paste-confirm">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER OVERLAY (Parte 2 — contador visual entre envios) -->
+<div class="timer-overlay hidden" id="timer-overlay">
+  <span class="timer-icon">⏱</span>
+  <div class="timer-content">
+    <div class="timer-label">Aguarde antes de enviar outra abordagem</div>
+    <div class="timer-countdown" id="timer-countdown">00:00</div>
+    <div class="timer-info" id="timer-info">Lead atual já foi contatado.</div>
+  </div>
+  <button class="timer-skip" id="timer-skip">Pular espera</button>
+</div>
+
+<script>
+/* ====================================================================
+   PROSPECÇÃO WHATSAPP — PARTE 1: BASE DE LEADS
+   App 100% client-side. Tudo salvo em localStorage.
+   Envio de mensagens é sempre MANUAL — o app só organiza.
+   ==================================================================== */
+
+/* ============ CONFIG EDITÁVEL (carregada do localStorage) ============ */
+// Defaults — podem ser editados pelo usuário no painel de config do app
+const DEFAULT_CONFIG = {
+  mensagemAbordagem:
+    'Oi, aqui é o Guilherme... tava pesquisando vocês no Google e vi que não têm site próprio. ' +
+    'Sei que é meio aleatório mas montei um site completo pra vocês. Quer dar uma olhada? ' +
+    'É só falar "para" se não quiser.',
+  mensagemFollowup1:
+    'Oi! Tudo bem? Passando pra saber se vocês chegaram a ver o site que montei pra vocês. ' +
+    'Sem pressa, mas se quiserem posso ajustar qualquer coisa. É só falar.',
+  mensagemFollowup2:
+    'Última tentativa, prometo! 😄 Se não fizer sentido pra vocês agora, eu paro por aqui. ' +
+    'Se quiserem dar uma olhada no site, é só falar "sim" que eu mando o link.',
+  followup1Horas: 72,    // horas após abordagem pra F1 ficar pronto (default 3 dias = 72h)
+  followup2HorasExtra: 24 // horas ADICIONAIS após F1 pra F2 ficar pronto (default 1 dia = 24h)
+};
+const CONFIG_KEY = 'leads_prospection_config_v1';
+
+// Estado de config carregado
+let config = { ...DEFAULT_CONFIG };
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Migração: se existia followup1Dias/followup2DiasExtra (versão antiga), converte pra horas
+      if (saved.followup1Dias !== undefined && saved.followup1Horas === undefined) {
+        saved.followup1Horas = saved.followup1Dias * 24;
+        delete saved.followup1Dias;
+      }
+      if (saved.followup2DiasExtra !== undefined && saved.followup2HorasExtra === undefined) {
+        saved.followup2HorasExtra = saved.followup2DiasExtra * 24;
+        delete saved.followup2DiasExtra;
+      }
+      config = { ...DEFAULT_CONFIG, ...saved };
+    }
+  } catch (e) {
+    config = { ...DEFAULT_CONFIG };
+  }
+}
+
+function saveConfig() {
+  try {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  } catch (e) {
+    console.warn('Erro ao salvar config:', e);
+  }
+}
+
+// Helper pra acessar como se fossem constantes
+function MENSAGEM_ABORDAGEM_FN() { return config.mensagemAbordagem; }
+function MENSAGEM_FOLLOWUP1_FN() { return config.mensagemFollowup1; }
+function MENSAGEM_FOLLOWUP2_FN() { return config.mensagemFollowup2; }
+
+/* ============ CONFIG SUPABASE ============ */
+const SUPABASE_URL = 'https://jsgkuaffljzqorhufekk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzZ2t1YWZmbGp6cW9yaHVmZWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNjc4ODksImV4cCI6MjA5Nzc0Mzg4OX0.HKAd-OElcQwOHZvQtGGVIFXav5Wd0DZh65QDfXWatUA';
+
+const STORAGE_KEY = 'leads_prospection_v1'; // cache local (offline)
+let _sb = null; // cliente Supabase (renomeado pra não colidir com window.supabase do SDK)
+let currentUser = null;
+let realtimeChannel = null;
+let isSyncing = false; // true durante sync nuvem→local (para não re-disparar save)
+let isOnline = navigator.onLine;
+
+/* ============ ESTADO ============ */
+let leads = [];        // [{id, name, phoneRaw, phone, phoneValid, websiteRaw, websiteType, city, createdAt, status}]
+let filters = { city: '', website: '', status: '', search: '', stateFilter: null };
+
+/* ============ INICIALIZAÇÃO SUPABASE ============ */
+function setConnStatus(state, text) {
+  const box = document.getElementById('conn-status');
+  const txt = document.getElementById('conn-status-text');
+  if (!box || !txt) return;
+  box.classList.remove('ok', 'err');
+  const dot = box.querySelector('.dot');
+  dot.classList.remove('pulsing');
+  if (state === 'loading') {
+    dot.classList.add('pulsing');
+  } else if (state === 'ok') {
+    box.classList.add('ok');
+  } else if (state === 'err') {
+    box.classList.add('err');
+  }
+  txt.textContent = text;
+}
+
+function showLoginError(html) {
+  const errBox = document.getElementById('login-error-msg');
+  if (errBox) {
+    errBox.classList.remove('hidden');
+    errBox.innerHTML = html;
+  }
+}
+function clearLoginError() {
+  const errBox = document.getElementById('login-error-msg');
+  if (errBox) {
+    errBox.classList.add('hidden');
+    errBox.innerHTML = '';
+  }
+}
+
+function initSupabase() {
+  setConnStatus('loading', 'Conectando à nuvem...');
+
+  // Aviso se rodando em file:// (pode causar problemas de segurança)
+  if (location.protocol === 'file:') {
+    console.warn('[Supabase] Rodando em file:// — pode haver restrições de segurança.');
+    showLoginError(
+      '⚠️ <b>Você abriu o arquivo direto (file://)</b><br><br>' +
+      'Alguns navegadores bloqueiam recursos quando você abre o HTML assim. <br>' +
+      'Se o login não funcionar, use um servidor local:<br><br>' +
+      '<b>Opção rápida (Python):</b> na pasta do arquivo, rode <code>python -m http.server 8000</code> e abra <code>http://localhost:8000/leads-app.html</code><br><br>' +
+      '<b>Opção ideal:</b> faça deploy na Vercel (explico depois) e acesse pela URL pública.'
+    );
+  }
+
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    console.error('SDK Supabase não carregou. window.supabase =', typeof window.supabase);
+    setConnStatus('err', 'Erro: SDK não carregou');
+    showLoginError(
+      '⚠️ <b>Não foi possível carregar a conexão com a nuvem.</b><br><br>' +
+      'Causas possíveis:<br>' +
+      '• Sem internet ao abrir o app<br>' +
+      '• Bloqueio de CDN (rede corporativa/adblock)<br>' +
+      '• Abriu via file:// (use servidor local)<br><br>' +
+      '<b>Solução:</b><br>' +
+      '1. Verifique sua internet<br>' +
+      '2. Desbloqueie <code>cdn.jsdelivr.net</code> no adblock<br>' +
+      '3. Recarregue a página (F5)'
+    );
+    return false;
+  }
+  try {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      realtime: {
+        params: { eventsPerSecond: 2 }
+      }
+    });
+    setConnStatus('ok', '✓ Conectado');
+    // Limpa avisos prévios se conectou OK
+    if (location.protocol !== 'file:') clearLoginError();
+    return true;
+  } catch (err) {
+    console.error('Erro ao criar cliente Supabase:', err);
+    setConnStatus('err', 'Erro: ' + err.message);
+    showLoginError('⚠️ Erro ao inicializar: <code>' + err.message + '</code>');
+    return false;
+  }
+}
+
+/* ============ AUTENTICAÇÃO (email + senha) ============ */
+async function signInWithEmailPassword(email, password) {
+  if (!_sb) return { ok: false, error: 'Supabase não inicializado' };
+  const { data, error } = await _sb.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password: password
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, user: data.user };
+}
+
+async function signUpWithEmailPassword(email, password) {
+  if (!_sb) return { ok: false, error: 'Supabase não inicializado' };
+  // Validação mínima de senha
+  if (password.length < 6) {
+    return { ok: false, error: 'Senha precisa ter pelo menos 6 caracteres' };
+  }
+  const { data, error } = await _sb.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password: password
+  });
+  if (error) return { ok: false, error: error.message };
+  // Verifica se precisa confirmar email
+  if (data.user && !data.session) {
+    return {
+      ok: false,
+      needsConfirmation: true,
+      error: 'Conta criada! Verifique seu email para confirmar (ou tente entrar direto se o admin desativou confirmação).'
+    };
+  }
+  return { ok: true, user: data.user };
+}
+
+async function logout() {
+  if (!_sb) return;
+  if (realtimeChannel) {
+    try { await _sb.removeChannel(realtimeChannel); } catch (e) {}
+    realtimeChannel = null;
+  }
+  await _sb.auth.signOut();
+  currentUser = null;
+  leads = [];
+  showLoginOverlay();
+  renderAll();
+  showToast('Você saiu. Até logo!', 'info');
+}
+
+function showLoginOverlay() {
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('status-bar').classList.add('hidden');
+}
+function hideLoginOverlay() {
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('status-bar').classList.remove('hidden');
+}
+
+async function handleAuthStateChange(session) {
+  if (session && session.user) {
+    currentUser = session.user;
+    document.getElementById('user-email').textContent = currentUser.email || '';
+    hideLoginOverlay();
+    setSyncStatus('syncing', 'Carregando...');
+    await loadState();
+    setupRealtime();
+    setSyncStatus('online', 'Sincronizado');
+    checkLocalBackupToMigrate();
+  } else {
+    currentUser = null;
+    leads = [];
+    showLoginOverlay();
+    renderAll();
+  }
+}
+
+/* ============ PERSISTÊNCIA ============ */
+// Cache local (sempre atualizado pra offline)
+function saveLocalCache() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+  } catch (e) {
+    console.warn('Erro ao salvar cache local:', e);
+  }
+}
+
+// Carrega leads do Supabase (fonte de verdade quando logado)
+async function loadState() {
+  if (!_sb || !currentUser) {
+    // Fallback: só cache local (modo offline sem login)
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) leads = JSON.parse(raw) || [];
+    } catch (e) { leads = []; }
+    renderAll();
+    return;
+  }
+  isSyncing = true;
+  try {
+    const { data, error } = await _sb
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    leads = (data || []).map(rowToLead);
+    saveLocalCache();
+  } catch (err) {
+    console.error('Erro ao carregar do Supabase:', err);
+    showToast('Erro ao carregar da nuvem. Mostrando cache local.', 'warning');
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) leads = JSON.parse(raw) || [];
+    } catch (e) { leads = []; }
+  } finally {
+    isSyncing = false;
+    renderAll();
+  }
+}
+
+// Converte row do banco → objeto lead (compatível com app)
+function rowToLead(row) {
+  return {
+    id: row.id,
+    name: row.name || '',
+    phoneRaw: row.phone_raw || '',
+    phone: row.phone || '',
+    phoneValid: !!row.phone_valid,
+    websiteRaw: row.website_raw || '',
+    websiteType: row.website_type || 'Sem site',
+    city: row.city || '',
+    status: row.status || 'pending',
+    createdAt: row.created_at || new Date().toISOString(),
+    // Campos para Partes 2-4 (já existem no banco)
+    abordagemAt: row.abordagem_at || null,
+    followup1At: row.followup1_at || null,
+    followup2At: row.followup2_at || null,
+    discardedAt: row.discarded_at || null,
+    interestedAt: row.interested_at || null
+  };
+}
+
+// Converte lead local → row do banco
+function leadToRow(lead) {
+  return {
+    id: lead.id,
+    user_id: currentUser.id,
+    name: lead.name,
+    phone_raw: lead.phoneRaw,
+    phone: lead.phone,
+    phone_valid: lead.phoneValid,
+    website_raw: lead.websiteRaw,
+    website_type: lead.websiteType,
+    city: lead.city,
+    status: lead.status,
+    created_at: lead.createdAt
+  };
+}
+
+// Salva no localStorage + sincroniza com Supabase (debounced)
+let saveTimer = null;
+function saveState() {
+  // Sempre salva no cache local primeiro
+  saveLocalCache();
+  // Sincroniza com nuvem (debounced pra evitar spam de requisições)
+  if (!_sb || !currentUser || isSyncing) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => syncToCloud(), 500);
+}
+
+// Sync full state → cloud (upsert de todos os leads locais)
+// Usado em operações bulk (import, restore). Updates individuais usam updateLeadInCloud.
+async function syncToCloud() {
+  if (!_sb || !currentUser || isSyncing) return;
+  setSyncStatus('syncing', 'Sincronizando...');
+  try {
+    // Upsert em lotes de 100 (limite do Supabase)
+    const batches = [];
+    for (let i = 0; i < leads.length; i += 100) {
+      batches.push(leads.slice(i, i + 100));
+    }
+    for (const batch of batches) {
+      const rows = batch.map(leadToRow);
+      const { error } = await _sb
+        .from('leads')
+        .upsert(rows, { onConflict: 'id' });
+      if (error) throw error;
+    }
+    setSyncStatus('online', 'Sincronizado');
+  } catch (err) {
+    console.error('Erro ao sincronizar:', err);
+    setSyncStatus('offline', 'Erro de sync');
+    showToast('Falha ao sincronizar. Tentando novamente...', 'warning');
+  }
+}
+
+// Insert/update de UM lead específico (mais eficiente que syncToCloud)
+async function upsertLeadInCloud(lead) {
+  if (!_sb || !currentUser) return;
+  try {
+    const { error } = await _sb
+      .from('leads')
+      .upsert(leadToRow(lead), { onConflict: 'id' });
+    if (error) throw error;
+    setSyncStatus('online', 'Sincronizado');
+  } catch (err) {
+    console.error('Erro ao salvar lead:', err);
+    setSyncStatus('offline', 'Erro de sync');
+  }
+}
+
+// Deleta um lead da nuvem
+async function deleteLeadInCloud(leadId) {
+  if (!_sb || !currentUser) return;
+  try {
+    const { error } = await _sb
+      .from('leads')
+      .delete()
+      .eq('id', leadId);
+    if (error) throw error;
+    setSyncStatus('online', 'Sincronizado');
+  } catch (err) {
+    console.error('Erro ao deletar lead:', err);
+    setSyncStatus('offline', 'Erro de sync');
+  }
+}
+
+/* ============ REAL-TIME ============ */
+function setupRealtime() {
+  if (!_sb || !currentUser || realtimeChannel) return;
+  realtimeChannel = _sb
+    .channel('leads-changes')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'leads', filter: `user_id=eq.${currentUser.id}` },
+      (payload) => {
+        console.log('[Realtime]', payload.eventType, payload.new?.id || payload.old?.id);
+        handleRealtimeChange(payload);
+      }
+    )
+    .subscribe();
+}
+
+function handleRealtimeChange(payload) {
+  if (isSyncing) return; // ignora echoes das próprias mudanças
+  const eventType = payload.eventType;
+  if (eventType === 'INSERT' && payload.new) {
+    const newLead = rowToLead(payload.new);
+    if (!leads.find(l => l.id === newLead.id)) {
+      leads.unshift(newLead);
+      saveLocalCache();
+      renderAll();
+    }
+  } else if (eventType === 'UPDATE' && payload.new) {
+    const updated = rowToLead(payload.new);
+    const idx = leads.findIndex(l => l.id === updated.id);
+    if (idx >= 0) {
+      leads[idx] = updated;
+      saveLocalCache();
+      renderAll();
+    }
+  } else if (eventType === 'DELETE' && payload.old) {
+    leads = leads.filter(l => l.id !== payload.old.id);
+    saveLocalCache();
+    renderAll();
+  }
+}
+
+/* ============ STATUS DE SYNC (UI) ============ */
+function setSyncStatus(state, text) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot';
+  if (state === 'syncing') dot.classList.add('syncing');
+  else if (state === 'offline') dot.classList.add('offline');
+  txt.textContent = text;
+}
+
+/* ============ MIGRAÇÃO LOCAL → NUVEM ============ */
+// Detecta leads no localStorage que ainda não estão na nuvem e oferece migrar
+function checkLocalBackupToMigrate() {
+  if (!currentUser) return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const localLeads = JSON.parse(raw) || [];
+    if (localLeads.length === 0) return;
+
+    // Compara com leads atuais (já carregados da nuvem)
+    const cloudIds = new Set(leads.map(l => l.id));
+    const cloudPhones = new Set(
+      leads.filter(l => l.phoneValid && l.phone).map(l => l.phone)
+    );
+    const toMigrate = localLeads.filter(l =>
+      !cloudIds.has(l.id) &&
+      !(l.phoneValid && cloudPhones.has(l.phone))
+    );
+
+    if (toMigrate.length > 0) {
+      const btn = document.getElementById('sync-local-btn');
+      document.getElementById('local-count').textContent = toMigrate.length;
+      btn.classList.remove('hidden');
+      btn.dataset.migrateData = JSON.stringify(toMigrate);
+    } else {
+      document.getElementById('sync-local-btn').classList.add('hidden');
+    }
+  } catch (e) {
+    console.warn('Erro ao checar backup local:', e);
+  }
+}
+
+async function migrateLocalToCloud() {
+  const btn = document.getElementById('sync-local-btn');
+  const data = btn.dataset.migrateData;
+  if (!data) return;
+  const toMigrate = JSON.parse(data);
+  if (toMigrate.length === 0) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon">⏳</span> Enviando...';
+  setSyncStatus('syncing', 'Migrando...');
+
+  try {
+    // Garante user_id e IDs únicos
+    const rows = toMigrate.map(l => {
+      // Gera novo UUID se o ID atual não é UUID (Supabase exige UUID)
+      if (!l.id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(l.id)) {
+        l.id = crypto.randomUUID();
+      }
+      return leadToRow(l);
+    });
+
+    // Insert em lotes
+    const batches = [];
+    for (let i = 0; i < rows.length; i += 100) {
+      batches.push(rows.slice(i, i + 100));
+    }
+    for (const batch of batches) {
+      const { error } = await _sb.from('leads').insert(batch);
+      if (error) throw error;
+    }
+
+    btn.classList.add('hidden');
+    showToast(`✓ ${toMigrate.length} leads migrados para a nuvem!`, 'success');
+    await loadState(); // recarrega tudo
+    setSyncStatus('online', 'Sincronizado');
+  } catch (err) {
+    console.error('Erro ao migrar:', err);
+    showToast('Erro ao migrar: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">☁</span> Sincronizar ' + toMigrate.length + ' leads locais para a nuvem';
+    setSyncStatus('online', 'Sincronizado');
+  }
+}
+
+/* ============ LIMPEZA DE NOME ============ */
+function cleanName(rawName) {
+  if (!rawName) return '';
+  let s = String(rawName).trim();
+  // Remove símbolos ® ™ ©
+  s = s.replace(/[®™©]/g, ' ');
+  // Remove sufixos jurídicos (token-based, lida bem com M.E. no final)
+  const sufixos = ['LTDA', 'ME', 'M.E.', 'S/A', 'S.A.', 'EIRELI', 'GMB'];
+  s = s.split(/\s+/).filter(w => !sufixos.includes(w.toUpperCase())).join(' ');
+  // Remove aspas residuais nas pontas
+  s = s.replace(/^["'\s]+|["'\s]+$/g, '');
+  // Colapsa espaços duplicados
+  s = s.replace(/\s+/g, ' ').trim();
+  // Remove vírgula/ponto/hífen finais
+  s = s.replace(/[,\-.]+$/g, '').trim();
+  return s;
+}
+
+/* ============ FORMATAÇÃO E VALIDAÇÃO DE TELEFONE ============ */
+function formatPhone(rawPhone) {
+  if (!rawPhone) return { phone: '', valid: false };
+  let digits = String(rawPhone).replace(/\D/g, '');
+  if (digits.length === 0) return { phone: '', valid: false };
+
+  // Remove zeros à esquerda
+  while (digits.startsWith('0')) {
+    digits = digits.substring(1);
+  }
+
+  // Se já tem código de país 55 e está em 12 ou 13 dígitos, mantém
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
+    // já está com country code
+  } else if (digits.length === 10 || digits.length === 11) {
+    // Número local brasileiro (DDD + número, com ou sem o 9)
+    digits = '55' + digits;
+  }
+  // Validação: 13 dígitos com 9 na posição 4
+  const valid = digits.length === 13 && digits[4] === '9';
+  return { phone: digits, valid };
+}
+
+function formatPhoneDisplay(phone) {
+  if (!phone || phone.length !== 13) return phone || '';
+  // 55 DD NNNNN NNNN
+  return `+${phone.slice(0,2)} (${phone.slice(2,4)}) ${phone.slice(4,9)}-${phone.slice(9)}`;
+}
+
+/* ============ CLASSIFICAÇÃO DE SITE ============ */
+function classifyWebsite(rawUrl) {
+  if (!rawUrl) return 'Sem site';
+  const u = String(rawUrl).trim().toLowerCase();
+  if (!u) return 'Sem site';
+  if (u.includes('instagram.com')) return 'Instagram';
+  if (u.includes('facebook.com')) return 'Facebook';
+  if (u.includes('linktr.ee')) return 'Linktree';
+  if (u.includes('wa.me') || u.includes('whatsapp.com')) return 'WhatsApp';
+  if (u.includes('booksy')) return 'Booksy';
+  if (u.includes('trinks') || u.includes('vagalume') || u.includes('mindbody') || u.includes('appbarber')) {
+    return 'App de agendamento';
+  }
+  return 'Site próprio';
+}
+
+function isPrioritySite(type) {
+  // "Sem site" é prioridade para prospecção
+  return type === 'Sem site';
+}
+
+/* ============ PARTE 3 — CÁLCULO DE FOLLOW-UPS ============ */
+// Estado do lead (Parte 3):
+// - 'pending'   : aguardando abordagem (não foi abordado ainda)
+// - 'waiting'   : abordagem feita, aguardando resposta (amarelo claro)
+// - 'fu1_ready' : follow-up 1 pronto pra enviar (amarelo escuro)
+// - 'fu1_sent'  : follow-up 1 enviado, aguardando F2
+// - 'fu2_ready' : follow-up 2 pronto pra enviar (laranja)
+// - 'fu2_sent'  : follow-up 2 enviado, ciclo encerrado
+// - 'discarded' : descartado manualmente
+// - 'interested': interessado manualmente
+
+// Calcula quando F1 e F2 ficam prontos (timestamp em ms)
+function calcFollowupTimes(lead) {
+  if (!lead.abordagemAt) return null;
+  const abordagemMs = new Date(lead.abordagemAt).getTime();
+  const fu1ReadyMs = abordagemMs + (config.followup1Horas * 60 * 60 * 1000);
+  // F2 = F1 enviado OU (se F1 ainda não foi enviado) F1 pronto + horasExtra
+  const fu1BaseMs = lead.followup1At ? new Date(lead.followup1At).getTime() : fu1ReadyMs;
+  const fu2ReadyMs = fu1BaseMs + (config.followup2HorasExtra * 60 * 60 * 1000);
+  return { fu1ReadyMs, fu2ReadyMs };
+}
+
+// Retorna o estado atual do lead considerando timestamps + ações manuais
+function getLeadState(lead) {
+  if (lead.discardedAt) return 'discarded';
+  if (lead.interestedAt) return 'interested';
+  if (!lead.abordagemAt) return 'pending';
+  const now = Date.now();
+  const times = calcFollowupTimes(lead);
+  if (!times) return 'pending';
+  // Se F2 já foi enviado, ciclo encerra
+  if (lead.followup2At) return 'fu2_sent';
+  // Se F1 já foi enviado
+  if (lead.followup1At) {
+    if (now >= times.fu2ReadyMs) return 'fu2_ready';
+    return 'fu1_sent'; // F1 enviado mas F2 ainda não tá pronto
+  }
+  // Se F1 ainda não foi enviado
+  if (now >= times.fu1ReadyMs) return 'fu1_ready';
+  return 'waiting'; // abordagem feita, F1 ainda não tá pronto
+}
+
+// Tempo restante até F1 ou F2 ficar pronto (formato humanizado)
+function getTimeUntilReady(lead) {
+  const state = getLeadState(lead);
+  const times = calcFollowupTimes(lead);
+  if (!times) return '';
+  let targetMs;
+  if (state === 'waiting') targetMs = times.fu1ReadyMs;
+  else if (state === 'fu1_sent') targetMs = times.fu2ReadyMs;
+  else return ''; // já está pronto ou em outro estado
+
+  const remaining = targetMs - Date.now();
+  if (remaining <= 0) return '';
+  const hours = Math.floor(remaining / (60 * 60 * 1000));
+  const days = Math.floor(hours / 24);
+  const hLeft = hours % 24;
+  if (days > 0) return `${days}d ${hLeft}h`;
+  if (hours > 0) return `${hours}h`;
+  const mins = Math.floor(remaining / (60 * 1000));
+  return `${mins}min`;
+}
+
+// Verifica periodicamente se algum lead mudou de estado (pra re-renderizar)
+let refreshIntervalId = null;
+function startAutoRefresh() {
+  if (refreshIntervalId) clearInterval(refreshIntervalId);
+  refreshIntervalId = setInterval(() => {
+    // Só re-renderiza se não estiver em timer ativo (pra não atrapalhar)
+    if (!timerState.active && leads.length > 0) {
+      renderLeads();
+      renderCounters();
+    }
+  }, 60000); // 1 minuto
+}
+
+/* ============ GERAR LINK wa.me ============ */
+// Detecta mobile (touch + UA) para escolher a URL mais apropriada.
+// Em desktop/navegador sem app, wa.me redireciona para api.whatsapp.com,
+// que tem headers que bloqueiam embed em iframe (ERR_BLOCKED_BY_RESPONSE).
+// Por isso, em desktop usamos web.whatsapp.com/send que abre o WhatsApp Web.
+function isMobileDevice() {
+  const ua = navigator.userAgent || '';
+  const hasTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop|Mobile/i.test(ua) || (hasTouch && window.innerWidth < 900);
+}
+
+function isInIframe() {
+  try {
+    return window.self !== window.top;
+  } catch (e) {
+    return true; // cross-origin → provavelmente iframe bloqueado
+  }
+}
+
+function buildWaLink(phone, message) {
+  if (!phone || phone.length !== 13) return '';
+  const text = encodeURIComponent(message);
+  // Em mobile usa wa.me (abre o app diretamente).
+  // Em desktop usa web.whatsapp.com/send (abre WhatsApp Web, sem o redirect problemático).
+  if (isMobileDevice()) {
+    return `https://wa.me/${phone}?text=${text}`;
+  }
+  return `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+}
+
+/* ============ PARSER CSV ============ */
+function parseCSVLine(line) {
+  const fields = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (c === ',' && !inQuotes) {
+      fields.push(cur);
+      cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function parseCSV(text) {
+  // Normaliza quebras de linha
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n').filter(l => l.trim().length > 0);
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCSVLine(lines[i]);
+    rows.push(fields);
+  }
+  return { headers, rows };
+}
+
+function findColumnIndex(headers, candidates) {
+  for (const cand of candidates) {
+    const idx = headers.indexOf(cand);
+    if (idx !== -1) return idx;
+  }
+  // tentativa fuzzy: contains
+  for (let i = 0; i < headers.length; i++) {
+    if (candidates.some(c => headers[i].includes(c))) return i;
+  }
+  return -1;
+}
+
+/* ============ IMPORTAÇÃO ============ */
+// Função central: processa texto CSV e adiciona leads (com anti-duplicado).
+function processCSVText(text) {
+  const { headers, rows } = parseCSV(text);
+
+  const nameIdx = findColumnIndex(headers, ['name', 'nome']);
+  const phoneIdx = findColumnIndex(headers, ['phone', 'telefone', 'whatsapp', 'celular']);
+  const websiteIdx = findColumnIndex(headers, ['website', 'site', 'url', 'dominio']);
+  const cityIdx = findColumnIndex(headers, ['city', 'cidade']);
+
+  if (nameIdx === -1 || phoneIdx === -1) {
+    showToast('CSV inválido: colunas Name e Phone são obrigatórias. Encontrado: ' + headers.join(', '), 'error');
+    return { added: 0, duplicates: 0, invalid: 0 };
+  }
+
+  let added = 0;
+  let duplicates = 0;
+  let invalid = 0;
+
+  // Indexa telefones já existentes
+  const existingPhones = new Set(
+    leads.filter(l => l.phoneValid && l.phone).map(l => l.phone)
+  );
+
+  for (const row of rows) {
+    const rawName = (row[nameIdx] || '').trim();
+    const rawPhone = (row[phoneIdx] || '').trim();
+    const rawWebsite = (row[websiteIdx] || '').trim();
+    const rawCity = (row[cityIdx] || '').trim();
+
+    const name = cleanName(rawName);
+    if (!name) continue;
+
+    const { phone, valid } = formatPhone(rawPhone);
+    const websiteType = classifyWebsite(rawWebsite);
+
+    // Anti-duplicado: se tem WhatsApp válido e o telefone já existe, pula
+    if (valid && existingPhones.has(phone)) {
+      duplicates++;
+      continue;
+    }
+    // Se inválido, comparar pelo raw phone normalizado
+    if (!valid) {
+      const normalized = String(rawPhone).replace(/\D/g, '');
+      const alreadyHasInvalid = leads.some(l =>
+        !l.phoneValid && l.phoneRaw.replace(/\D/g, '') === normalized
+      );
+      if (alreadyHasInvalid) {
+        duplicates++;
+        continue;
+      }
+    }
+
+    if (valid) existingPhones.add(phone);
+    if (!valid) invalid++;
+
+    const lead = {
+      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'L' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      name,
+      phoneRaw: rawPhone,
+      phone,
+      phoneValid: valid,
+      websiteRaw: rawWebsite,
+      websiteType,
+      city: rawCity,
+      createdAt: new Date().toISOString(),
+      status: 'pending' // pending (aguardando abordagem) — Partes 2+ adicionam outros
+    };
+    leads.push(lead);
+    added++;
+  }
+
+  saveState();
+  renderAll();
+
+  return { added, duplicates, invalid };
+}
+
+function handleCSVImport(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text = e.target.result;
+      const { added, duplicates, invalid } = processCSVText(text);
+      if (added === 0 && duplicates === 0 && invalid === 0) return;
+      const msg = `Importação concluída: +${added} leads` +
+        (duplicates ? `, ${duplicates} duplicados ignorados` : '') +
+        (invalid ? `, ${invalid} sem WhatsApp válido` : '');
+      showToast(msg, 'success');
+    } catch (err) {
+      showToast('Erro ao processar CSV: ' + err.message, 'error');
+    }
+  };
+  reader.onerror = () => showToast('Falha ao ler arquivo', 'error');
+  reader.readAsText(file, 'utf-8');
+}
+
+/* ============ EXPORTAÇÃO CSV (BACKUP) ============ */
+function exportCSV() {
+  if (leads.length === 0) {
+    showToast('Nenhum lead para exportar', 'warning');
+    return;
+  }
+  const headers = ['Name', 'Phone', 'PhoneValid', 'PhoneFormatted', 'Website', 'WebsiteType', 'City', 'Status', 'CreatedAt', 'WaLink'];
+  const escapeCSV = (v) => {
+    const s = String(v ?? '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+  const lines = [headers.join(',')];
+  for (const l of leads) {
+    const waLink = l.phoneValid ? buildWaLink(l.phone, config.mensagemAbordagem) : '';
+    lines.push([
+      l.name, l.phone, l.phoneValid ? 'yes' : 'no',
+      formatPhoneDisplay(l.phone), l.websiteRaw, l.websiteType,
+      l.city, l.status, l.createdAt, waLink
+    ].map(escapeCSV).join(','));
+  }
+  const csv = lines.join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  a.download = `leads-backup-${ts}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Backup exportado: ${leads.length} leads`, 'success');
+}
+
+/* ============ BACKUP JSON (estado completo) ============ */
+// Backup inclui: leads + configurações (mensagens). Útil para sincronizar entre PC e celular.
+function exportJSONBackup() {
+  const backup = {
+    app: 'prospecao-whatsapp',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    config: {
+      mensagemAbordagem: config.mensagemAbordagem,
+      mensagemFollowup1: config.mensagemFollowup1,
+      mensagemFollowup2: config.mensagemFollowup2,
+      followup1Horas: config.followup1Horas,
+      followup2HorasExtra: config.followup2HorasExtra
+    },
+    leads: leads
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  a.download = `leads-backup-${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Backup JSON exportado: ${leads.length} leads + configurações`, 'success');
+}
+
+function handleJSONRestore(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== 'object') {
+        throw new Error('Arquivo JSON inválido');
+      }
+      // Aceita tanto {leads: [...]} quanto array direto
+      let importedLeads;
+      if (Array.isArray(data)) {
+        importedLeads = data;
+      } else if (Array.isArray(data.leads)) {
+        importedLeads = data.leads;
+      } else {
+        throw new Error('Estrutura inválida: esperado array "leads"');
+      }
+
+      // Validação básica de cada lead
+      const valid = importedLeads.filter(l =>
+        l && typeof l === 'object' && l.name && typeof l.phone !== 'undefined'
+      );
+
+      if (valid.length === 0) {
+        showToast('Nenhum lead válido encontrado no backup', 'error');
+        return;
+      }
+
+      // Mescla com anti-duplicado (mantém leads existentes, adiciona novos)
+      const existingPhones = new Set(
+        leads.filter(l => l.phoneValid && l.phone).map(l => l.phone)
+      );
+      let added = 0;
+      let duplicates = 0;
+      for (const l of valid) {
+        if (l.phoneValid && existingPhones.has(l.phone)) {
+          duplicates++;
+          continue;
+        }
+        // Garante ID único
+        if (!l.id || leads.some(x => x.id === l.id)) {
+          l.id = 'L' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        }
+        if (l.phoneValid) existingPhones.add(l.phone);
+        leads.push(l);
+        added++;
+      }
+
+      saveState();
+      renderAll();
+      const msg = `Restaurado: +${added} leads` +
+        (duplicates ? `, ${duplicates} duplicados ignorados` : '');
+      showToast(msg, 'success');
+    } catch (err) {
+      showToast('Erro ao restaurar backup: ' + err.message, 'error');
+    }
+  };
+  reader.onerror = () => showToast('Falha ao ler arquivo', 'error');
+  reader.readAsText(file, 'utf-8');
+}
+
+/* ============ MODAL COLAR CSV ============ */
+function showPasteModal() {
+  document.getElementById('modal-paste').classList.add('show');
+  setTimeout(() => document.getElementById('paste-csv-textarea').focus(), 100);
+}
+function hidePasteModal() {
+  document.getElementById('modal-paste').classList.remove('show');
+  document.getElementById('paste-csv-textarea').value = '';
+}
+function handlePasteImport() {
+  const text = document.getElementById('paste-csv-textarea').value;
+  if (!text || !text.trim()) {
+    showToast('Cole o conteúdo do CSV primeiro', 'warning');
+    return;
+  }
+  try {
+    const { added, duplicates, invalid } = processCSVText(text);
+    if (added === 0 && duplicates === 0 && invalid === 0) return;
+    const msg = `Importação concluída: +${added} leads` +
+      (duplicates ? `, ${duplicates} duplicados ignorados` : '') +
+      (invalid ? `, ${invalid} sem WhatsApp válido` : '');
+    showToast(msg, 'success');
+    hidePasteModal();
+  } catch (err) {
+    showToast('Erro ao processar CSV: ' + err.message, 'error');
+  }
+}
+
+/* ============ RENDER ============ */
+function renderCounters() {
+  const total = leads.length;
+  // Conta por estado dinâmico (Parte 4)
+  let pending = 0, waiting = 0, fu1Ready = 0, fu1Sent = 0, fu2Ready = 0, fu2Sent = 0;
+  let interested = 0, discarded = 0, invalid = 0;
+  for (const l of leads) {
+    const state = l.phoneValid ? getLeadState(l) : 'invalid';
+    if (state === 'pending') pending++;
+    else if (state === 'waiting') waiting++;
+    else if (state === 'fu1_ready') fu1Ready++;
+    else if (state === 'fu1_sent') fu1Sent++;
+    else if (state === 'fu2_ready') fu2Ready++;
+    else if (state === 'fu2_sent') fu2Sent++;
+    else if (state === 'interested') interested++;
+    else if (state === 'discarded') discarded++;
+    else if (state === 'invalid') invalid++;
+  }
+
+  // Atualiza os 6 contadores principais
+  setCounter('c-total', total);
+  setCounter('c-pending', pending);
+  setCounter('c-fu1', fu1Ready);
+  setCounter('c-fu2', fu2Ready);
+  setCounter('c-interested', interested);
+  setCounter('c-discarded', discarded);
+
+  // Resumo de atividade hoje
+  const today = new Date();
+  const todayStr = today.toDateString();
+  let todayAbordagens = 0, todayFu1 = 0, todayFu2 = 0, todayInterested = 0;
+  for (const l of leads) {
+    if (l.abordagemAt && new Date(l.abordagemAt).toDateString() === todayStr) todayAbordagens++;
+    if (l.followup1At && new Date(l.followup1At).toDateString() === todayStr) todayFu1++;
+    if (l.followup2At && new Date(l.followup2At).toDateString() === todayStr) todayFu2++;
+    if (l.interestedAt && new Date(l.interestedAt).toDateString() === todayStr) todayInterested++;
+  }
+  setTodayCounter('today-abordagens', todayAbordagens);
+  setTodayCounter('today-fu1', todayFu1);
+  setTodayCounter('today-fu2', todayFu2);
+  setTodayCounter('today-interested', todayInterested);
+}
+
+function setCounter(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  if (value === 0) el.classList.add('zero');
+  else el.classList.remove('zero');
+}
+
+function setTodayCounter(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  if (value === 0) el.classList.add('zero');
+  else el.classList.remove('zero');
+}
+
+function renderCityFilter() {
+  const cities = [...new Set(leads.map(l => l.city).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, 'pt-BR')
+  );
+  const sel = document.getElementById('city-filter');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todas as cidades</option>';
+  for (const c of cities) {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    sel.appendChild(opt);
+  }
+  sel.value = current;
+}
+
+function applyFiltersAndSort() {
+  let result = leads.slice();
+
+  // Filtros
+  if (filters.city) result = result.filter(l => l.city === filters.city);
+  if (filters.website) result = result.filter(l => l.websiteType === filters.website);
+  if (filters.status === 'valid') result = result.filter(l => l.phoneValid);
+  if (filters.status === 'invalid') result = result.filter(l => !l.phoneValid);
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    result = result.filter(l =>
+      l.name.toLowerCase().includes(q) ||
+      (l.city || '').toLowerCase().includes(q)
+    );
+  }
+  // Filtro por estado (Parte 4 — clique nos contadores)
+  if (filters.stateFilter) {
+    if (filters.stateFilter === 'pending') {
+      result = result.filter(l => l.phoneValid && getLeadState(l) === 'pending');
+    } else if (filters.stateFilter === 'fu1_ready') {
+      result = result.filter(l => getLeadState(l) === 'fu1_ready');
+    } else if (filters.stateFilter === 'fu2_ready') {
+      result = result.filter(l => getLeadState(l) === 'fu2_ready');
+    } else if (filters.stateFilter === 'interested') {
+      result = result.filter(l => getLeadState(l) === 'interested');
+    } else if (filters.stateFilter === 'discarded') {
+      result = result.filter(l => getLeadState(l) === 'discarded');
+    }
+    // 'total' não filtra
+  }
+
+  // Ordenação: prioridade (sem site) primeiro, depois por cidade, depois por nome
+  result.sort((a, b) => {
+    const aPrio = isPrioritySite(a.websiteType) ? 0 : 1;
+    const bPrio = isPrioritySite(b.websiteType) ? 0 : 1;
+    if (aPrio !== bPrio) return aPrio - bPrio;
+    const c = (a.city || '').localeCompare(b.city || '', 'pt-BR');
+    if (c !== 0) return c;
+    return (a.name || '').localeCompare(b.name || '', 'pt-BR');
+  });
+
+  return result;
+}
+
+function webTagClass(type) {
+  if (type === 'Sem site') return 'web-semsite';
+  if (type === 'Site próprio') return 'web-own';
+  if (['Booksy', 'App de agendamento'].includes(type)) return 'web-app';
+  return 'web-social';
+}
+
+function renderLeads() {
+  const list = document.getElementById('leads-list');
+  const empty = document.getElementById('empty-state');
+  const filtered = applyFiltersAndSort();
+
+  document.getElementById('shown-count').textContent = filtered.length;
+  document.getElementById('list-total').textContent = leads.length;
+
+  // Dica de prioridade
+  const prioCount = filtered.filter(l => isPrioritySite(l.websiteType)).length;
+  document.getElementById('priority-hint').innerHTML = prioCount > 0
+    ? `<b>${prioCount}</b> sem site (prioridade)`
+    : '';
+
+  if (leads.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">🔍</div>
+        <h3>Nenhum lead encontrado</h3>
+        <p>Ajuste os filtros ou a busca para ver mais resultados.</p>
+      </div>`;
+    return;
+  }
+
+  const html = filtered.map(l => {
+    const isPrio = isPrioritySite(l.websiteType);
+    // Estado dinâmico do lead (Parte 3)
+    const state = l.phoneValid ? getLeadState(l) : 'invalid';
+    const isLocked = timerState.active && timerState.clickedLeadId !== l.id;
+
+    // Classe do card
+    let cardClass = '';
+    if (state === 'invalid') cardClass = 'invalid';
+    else if (state === 'pending') cardClass = isPrio ? 'priority' : (l.websiteType === 'Site próprio' ? 'own-site' : '');
+    else if (state === 'waiting') cardClass = 'status-waiting';
+    else if (state === 'fu1_ready') cardClass = 'status-fu1-ready';
+    else if (state === 'fu1_sent') cardClass = 'status-fu1-sent';
+    else if (state === 'fu2_ready') cardClass = 'status-fu2-ready';
+    else if (state === 'fu2_sent') cardClass = 'status-fu2-sent';
+    else if (state === 'discarded') cardClass = 'status-discarded';
+    else if (state === 'interested') cardClass = 'status-interested';
+    if (isLocked && state !== 'discarded' && state !== 'interested') cardClass += ' is-locked';
+
+    // Links wa.me conforme estado
+    const abordagemLink = l.phoneValid ? buildWaLink(l.phone, config.mensagemAbordagem) : '';
+    const fu1Link = l.phoneValid ? buildWaLink(l.phone, config.mensagemFollowup1) : '';
+    const fu2Link = l.phoneValid ? buildWaLink(l.phone, config.mensagemFollowup2) : '';
+
+    // Status badge
+    let statusBadge;
+    if (state === 'invalid') {
+      statusBadge = '<span class="lead-status status-invalid">Sem WhatsApp válido</span>';
+    } else if (state === 'discarded') {
+      statusBadge = '<span class="lead-status status-discarded">Descartado</span>';
+    } else if (state === 'interested') {
+      statusBadge = '<span class="lead-status status-interested">Interessado ✓</span>';
+    } else if (state === 'fu2_sent') {
+      statusBadge = '<span class="lead-status status-fu2-sent">Cicro encerrado</span>';
+    } else if (state === 'fu2_ready') {
+      statusBadge = '<span class="lead-status status-fu2-ready">F2 pronto</span>';
+    } else if (state === 'fu1_sent') {
+      statusBadge = '<span class="lead-status status-fu1-sent">F1 enviado</span>';
+    } else if (state === 'fu1_ready') {
+      statusBadge = '<span class="lead-status status-fu1-ready">F1 pronto</span>';
+    } else if (state === 'waiting') {
+      statusBadge = '<span class="lead-status status-waiting">Aguardando resposta</span>';
+    } else if (isLocked) {
+      statusBadge = '<span class="lead-status status-locked">Aguardando timer</span>';
+    } else {
+      statusBadge = '<span class="lead-status status-pending">Aguardando abordagem</span>';
+    }
+
+    // Bloco de ações principal
+    let actionsHtml = '';
+    let miniActionsHtml = '';
+
+    if (state === 'invalid') {
+      actionsHtml = `<div class="lead-actions">
+        <div class="lead-link disabled">Telefone inválido</div>
+      </div>`;
+    } else if (state === 'discarded' || state === 'interested') {
+      // Mostra só botão de desfazer
+      miniActionsHtml = `<div class="lead-mini-actions">
+        <button class="btn-mini btn-undo" data-undo="${l.id}">↺ Desfazer</button>
+      </div>`;
+    } else if (isLocked) {
+      actionsHtml = `<div class="lead-actions">
+        <button class="btn-abordagem is-locked" disabled>
+          <span class="wa-ico-big"></span> Aguarde
+          <span class="lock-countdown">${formatCountdown(timerState.remaining)}</span>
+        </button>
+      </div>`;
+    } else {
+      // Botão principal conforme estado
+      let btnHtml = '';
+      if (state === 'pending') {
+        btnHtml = `<button class="btn-abordagem" data-action="abordagem" data-lead-id="${l.id}" data-wa-link="${abordagemLink}">
+          <span class="wa-ico-big"></span> Mandar Abordagem
+        </button>`;
+      } else if (state === 'waiting' || state === 'fu1_ready' || state === 'fu1_sent') {
+        // Pode reenviar abordagem OU enviar F1 (se pronto)
+        if (state === 'fu1_ready') {
+          btnHtml = `<button class="btn-followup" data-action="followup1" data-lead-id="${l.id}" data-wa-link="${fu1Link}">
+            <span class="wa-ico-big"></span> Enviar Follow-up 1
+          </button>`;
+        } else {
+          btnHtml = `<button class="btn-abordagem" data-action="abordagem" data-lead-id="${l.id}" data-wa-link="${abordagemLink}">
+            <span class="wa-ico-big"></span> Reenviar abordagem
+          </button>`;
+        }
+      } else if (state === 'fu2_ready') {
+        btnHtml = `<button class="btn-followup is-fu2" data-action="followup2" data-lead-id="${l.id}" data-wa-link="${fu2Link}">
+          <span class="wa-ico-big"></span> Enviar Follow-up 2
+        </button>`;
+      } else if (state === 'fu2_sent') {
+        // Ciclo encerrado, sem botão principal
+        btnHtml = `<div class="lead-link disabled" style="background:transparent;color:var(--text-muted);border:1px solid var(--border)">Ciclo encerrado</div>`;
+      }
+
+      actionsHtml = `<div class="lead-actions">
+        ${btnHtml}
+        <button class="btn-copy" data-link="${(state === 'fu2_ready' ? fu2Link : (state === 'fu1_ready' ? fu1Link : abordagemLink))}" title="Copiar link">
+          <span class="copy-ico">⧉</span>
+        </button>
+      </div>`;
+
+      // Mini ações (descartar / interessado) — só para leads em ciclo ativo
+      if (state !== 'fu2_sent') {
+        miniActionsHtml = `<div class="lead-mini-actions">
+          <button class="btn-mini btn-discard" data-discard="${l.id}">✕ Descartar</button>
+          <button class="btn-mini btn-interest" data-interest="${l.id}">✓ Interessado</button>
+        </div>`;
+      }
+    }
+
+    // Info de timestamps (abordagem, F1, F2)
+    let timestampsHtml = '';
+    if (l.abordagemAt) {
+      const fmt = (iso) => {
+        const d = new Date(iso);
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' +
+               d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      };
+      const parts = [`📨 Abordagem: <b>${fmt(l.abordagemAt)}</b>`];
+      if (l.followup1At) parts.push(`F1: <b>${fmt(l.followup1At)}</b>`);
+      if (l.followup2At) parts.push(`F2: <b>${fmt(l.followup2At)}</b>`);
+      timestampsHtml = `<div class="lead-meta" style="margin-top:6px;font-size:11px;opacity:0.7;flex-direction:column;align-items:flex-start;gap:2px">
+        ${parts.map(p => `<span class="item">${p}</span>`).join('')}
+      </div>`;
+    }
+
+    // Tempo restante até próximo follow-up
+    let countdownHtml = '';
+    const timeUntil = getTimeUntilReady(l);
+    if (timeUntil && (state === 'waiting' || state === 'fu1_sent')) {
+      const label = state === 'waiting' ? 'F1 pronto em' : 'F2 pronto em';
+      countdownHtml = `<div class="lead-meta" style="margin-top:4px;font-size:12px;color:var(--warning);font-weight:600">
+        ⏳ ${label}: ${timeUntil}
+      </div>`;
+    }
+
+    return `
+      <div class="lead-card ${cardClass}" data-id="${l.id}">
+        <div class="lead-head">
+          <div class="lead-name">${escapeHTML(l.name)}</div>
+          ${statusBadge}
+        </div>
+        <div class="lead-meta">
+          <span class="item city-ico"><b>${escapeHTML(l.city || '—')}</b></span>
+          <span class="item phone-ico">${l.phoneValid ? formatPhoneDisplay(l.phone) : escapeHTML(l.phoneRaw || '—')}</span>
+        </div>
+        <div class="lead-meta">
+          <span class="item web-ico">
+            <span class="web-tag ${webTagClass(l.websiteType)}">${l.websiteType}</span>
+          </span>
+          ${l.websiteRaw ? `<span class="item" style="font-size:11px;word-break:break-all;opacity:.7">${escapeHTML(l.websiteRaw)}</span>` : ''}
+        </div>
+        ${actionsHtml}
+        ${miniActionsHtml}
+        ${countdownHtml}
+        ${timestampsHtml}
+      </div>`;
+  }).join('');
+
+  list.innerHTML = html;
+  bindLeadActions();
+}
+
+/* ============ PARTE 2 — TIMER E FLUXO DE ABORDAGEM ============ */
+// Estado global do timer
+const timerState = {
+  active: false,
+  clickedLeadId: null,        // lead clicado (liberado pra re-abordar)
+  lockUntil: 0,                // timestamp ms até quando os OUTROS estão travados
+  duration: 0,                 // duração total (ms)
+  remaining: 0,                // ms restantes
+  intervalId: null
+};
+
+// Sorteia 30-90 segundos (em ms)
+function randomLockDuration() {
+  const min = 30, max = 90; // segundos
+  return (Math.floor(Math.random() * (max - min + 1)) + min) * 1000;
+}
+
+// Formata ms → MM:SS
+function formatCountdown(ms) {
+  if (ms < 0) ms = 0;
+  const totalSec = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// Inicia o timer: trava OUTROS leads, libera só o clicado
+function startApproachTimer(leadId) {
+  // Limpa timer anterior se houver
+  if (timerState.intervalId) {
+    clearInterval(timerState.intervalId);
+  }
+  const duration = randomLockDuration();
+  timerState.active = true;
+  timerState.clickedLeadId = leadId;
+  timerState.lockUntil = Date.now() + duration;
+  timerState.duration = duration;
+  timerState.remaining = duration;
+
+  // Mostra overlay
+  const overlay = document.getElementById('timer-overlay');
+  overlay.classList.remove('hidden');
+  updateTimerUI();
+
+  // Atualiza a cada 500ms
+  timerState.intervalId = setInterval(() => {
+    timerState.remaining = timerState.lockUntil - Date.now();
+    if (timerState.remaining <= 0) {
+      finishApproachTimer();
+    } else {
+      updateTimerUI();
+    }
+  }, 500);
+
+  // Re-renderiza lista pra aplicar travas visuais
+  renderLeads();
+}
+
+function updateTimerUI() {
+  document.getElementById('timer-countdown').textContent = formatCountdown(timerState.remaining);
+  // Atualiza countdowns inline nos cards travados
+  document.querySelectorAll('.lock-countdown').forEach(el => {
+    el.textContent = formatCountdown(timerState.remaining);
+  });
+  // Info do overlay
+  const info = document.getElementById('timer-info');
+  if (timerState.clickedLeadId) {
+    const lead = leads.find(l => l.id === timerState.clickedLeadId);
+    if (lead) {
+      info.textContent = `Lead "${lead.name}" já contatado. Aguarde para abordar outro.`;
+    }
+  }
+}
+
+function finishApproachTimer() {
+  if (timerState.intervalId) {
+    clearInterval(timerState.intervalId);
+    timerState.intervalId = null;
+  }
+  timerState.active = false;
+  timerState.clickedLeadId = null;
+  timerState.remaining = 0;
+  document.getElementById('timer-overlay').classList.add('hidden');
+  renderLeads();
+  showToast('⏱ Pode abordar outro lead agora!', 'success');
+}
+
+// Skip manual (caso o usuário queira pular a espera)
+function skipApproachTimer() {
+  if (!timerState.active) return;
+  finishApproachTimer();
+}
+
+// Handler do clique em "Mandar Abordagem"
+async function handleApproachClick(leadId, waLink) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+
+  // Registra data/hora da abordagem
+  const now = new Date().toISOString();
+  lead.abordagemAt = now;
+  lead.status = 'waiting';
+  saveLocalCache();
+
+  // Atualiza na nuvem (campo abordagem_at)
+  if (_sb && currentUser) {
+    try {
+      const { error } = await _sb.from('leads')
+        .update({ abordagem_at: now, status: 'waiting' })
+        .eq('id', leadId);
+      if (error) throw error;
+      setSyncStatus('online', 'Sincronizado');
+    } catch (err) {
+      console.error('Erro ao salvar abordagem na nuvem:', err);
+      setSyncStatus('offline', 'Erro de sync');
+    }
+  }
+
+  // Abre o WhatsApp em nova aba
+  window.open(waLink, '_blank', 'noopener,noreferrer');
+
+  // Inicia o timer que trava os OUTROS leads
+  startApproachTimer(leadId);
+
+  showToast('📨 Abordagem registrada! WhatsApp aberto em nova aba.', 'success');
+}
+
+/* ============ BIND AÇÕES DOS LEADS ============ */
+function bindLeadActions() {
+  // Botão grande "Mandar Abordagem" / "Reenviar abordagem"
+  document.querySelectorAll('.btn-abordagem[data-action="abordagem"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-lead-id');
+      const waLink = btn.getAttribute('data-wa-link');
+      if (!leadId || !waLink) return;
+      if (timerState.active && timerState.clickedLeadId !== leadId) {
+        showToast('⏱ Aguarde o timer acabar para abordar outro lead', 'warning');
+        return;
+      }
+      await handleApproachClick(leadId, waLink);
+    });
+  });
+
+  // Botão "Enviar Follow-up 1"
+  document.querySelectorAll('.btn-followup[data-action="followup1"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-lead-id');
+      const waLink = btn.getAttribute('data-wa-link');
+      if (!leadId || !waLink) return;
+      if (timerState.active && timerState.clickedLeadId !== leadId) {
+        showToast('⏱ Aguarde o timer acabar para abordar outro lead', 'warning');
+        return;
+      }
+      await handleFollowupClick(leadId, waLink, 1);
+    });
+  });
+
+  // Botão "Enviar Follow-up 2"
+  document.querySelectorAll('.btn-followup[data-action="followup2"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-lead-id');
+      const waLink = btn.getAttribute('data-wa-link');
+      if (!leadId || !waLink) return;
+      if (timerState.active && timerState.clickedLeadId !== leadId) {
+        showToast('⏱ Aguarde o timer acabar para abordar outro lead', 'warning');
+        return;
+      }
+      await handleFollowupClick(leadId, waLink, 2);
+    });
+  });
+
+  // Botão "Descartar"
+  document.querySelectorAll('.btn-mini[data-discard]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-discard');
+      if (!leadId) return;
+      if (!confirm('Marcar este lead como DESCARTADO? O ciclo de follow-up será interrompido.')) return;
+      await markLeadStatus(leadId, 'discarded');
+    });
+  });
+
+  // Botão "Interessado"
+  document.querySelectorAll('.btn-mini[data-interest]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-interest');
+      if (!leadId) return;
+      await markLeadStatus(leadId, 'interested');
+    });
+  });
+
+  // Botão "Desfazer" (descartado/interessado)
+  document.querySelectorAll('.btn-mini[data-undo]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-undo');
+      if (!leadId) return;
+      await undoLeadStatus(leadId);
+    });
+  });
+
+  // Botão copiar link
+  document.querySelectorAll('.btn-copy').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const link = btn.getAttribute('data-link');
+      if (!link) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(link);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = link;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        btn.classList.add('copied');
+        const original = btn.innerHTML;
+        btn.innerHTML = '✓';
+        showToast('Link copiado! Cole na barra do navegador.', 'success');
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = original;
+        }, 1800);
+      } catch (err) {
+        window.prompt('Copie o link abaixo:', link);
+      }
+    });
+  });
+}
+
+/* ============ PARTE 3 — HANDLERS DE FOLLOW-UP E STATUS ============ */
+async function handleFollowupClick(leadId, waLink, followupNum) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const now = new Date().toISOString();
+  if (followupNum === 1) {
+    lead.followup1At = now;
+  } else {
+    lead.followup2At = now;
+  }
+  lead.status = followupNum === 1 ? 'fu1_sent' : 'fu2_sent';
+  saveLocalCache();
+  // Atualiza na nuvem
+  if (_sb && currentUser) {
+    try {
+      const updates = followupNum === 1
+        ? { followup1_at: now, status: 'fu1_sent' }
+        : { followup2_at: now, status: 'fu2_sent' };
+      const { error } = await _sb.from('leads').update(updates).eq('id', leadId);
+      if (error) throw error;
+      setSyncStatus('online', 'Sincronizado');
+    } catch (err) {
+      console.error('Erro ao salvar follow-up na nuvem:', err);
+      setSyncStatus('offline', 'Erro de sync');
+    }
+  }
+  // Abre o WhatsApp em nova aba
+  window.open(waLink, '_blank', 'noopener,noreferrer');
+  // Inicia o timer que trava os OUTROS leads
+  startApproachTimer(leadId);
+  showToast(`📨 Follow-up ${followupNum} enviado! WhatsApp aberto.`, 'success');
+}
+
+async function markLeadStatus(leadId, newStatus) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const now = new Date().toISOString();
+  if (newStatus === 'discarded') {
+    lead.discardedAt = now;
+    lead.interestedAt = null;
+    lead.status = 'discarded';
+  } else if (newStatus === 'interested') {
+    lead.interestedAt = now;
+    lead.discardedAt = null;
+    lead.status = 'interested';
+  }
+  saveLocalCache();
+  // Atualiza na nuvem
+  if (_sb && currentUser) {
+    try {
+      const updates = newStatus === 'discarded'
+        ? { discarded_at: now, interested_at: null, status: 'discarded' }
+        : { interested_at: now, discarded_at: null, status: 'interested' };
+      const { error } = await _sb.from('leads').update(updates).eq('id', leadId);
+      if (error) throw error;
+      setSyncStatus('online', 'Sincronizado');
+    } catch (err) {
+      console.error('Erro ao atualizar status na nuvem:', err);
+      setSyncStatus('offline', 'Erro de sync');
+    }
+  }
+  renderAll();
+  const msg = newStatus === 'discarded' ? '✕ Lead descartado. Ciclo interrompido.' : '✓ Lead marcado como interessado!';
+  showToast(msg, newStatus === 'discarded' ? 'warning' : 'success');
+}
+
+async function undoLeadStatus(leadId) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  lead.discardedAt = null;
+  lead.interestedAt = null;
+  // Recalcula status baseado em timestamps existentes
+  lead.status = getLeadState(lead);
+  saveLocalCache();
+  if (_sb && currentUser) {
+    try {
+      const updates = { discarded_at: null, interested_at: null, status: lead.status };
+      const { error } = await _sb.from('leads').update(updates).eq('id', leadId);
+      if (error) throw error;
+      setSyncStatus('online', 'Sincronizado');
+    } catch (err) {
+      console.error('Erro ao desfazer status na nuvem:', err);
+      setSyncStatus('offline', 'Erro de sync');
+    }
+  }
+  renderAll();
+  showToast('↺ Status desfeito.', 'info');
+}
+
+/* ============ PARTE 3 — PAINEL DE CONFIGURAÇÃO ============ */
+function populateConfigForm() {
+  const m1 = document.getElementById('cfg-msg-abordagem');
+  const m2 = document.getElementById('cfg-msg-fu1');
+  const m3 = document.getElementById('cfg-msg-fu2');
+  const h1 = document.getElementById('cfg-fu1-horas');
+  const h2 = document.getElementById('cfg-fu2-horas');
+  if (m1) m1.value = config.mensagemAbordagem;
+  if (m2) m2.value = config.mensagemFollowup1;
+  if (m3) m3.value = config.mensagemFollowup2;
+  if (h1) h1.value = config.followup1Horas;
+  if (h2) h2.value = config.followup2HorasExtra;
+}
+
+function saveConfigFromForm() {
+  const m1 = document.getElementById('cfg-msg-abordagem').value;
+  const m2 = document.getElementById('cfg-msg-fu1').value;
+  const m3 = document.getElementById('cfg-msg-fu2').value;
+  const h1 = parseFloat(document.getElementById('cfg-fu1-horas').value);
+  const h2 = parseFloat(document.getElementById('cfg-fu2-horas').value);
+  if (!m1.trim() || !m2.trim() || !m3.trim()) {
+    showToast('Mensagens não podem estar vazias', 'warning');
+    return;
+  }
+  if (isNaN(h1) || h1 < 0 || isNaN(h2) || h2 < 0) {
+    showToast('Horas devem ser números válidos (≥ 0)', 'warning');
+    return;
+  }
+  config.mensagemAbordagem = m1;
+  config.mensagemFollowup1 = m2;
+  config.mensagemFollowup2 = m3;
+  config.followup1Horas = h1;
+  config.followup2HorasExtra = h2;
+  saveConfig();
+  renderLeads();
+  showToast('✓ Configurações salvas!', 'success');
+}
+
+function resetConfig() {
+  if (!confirm('Restaurar configurações padrão? Suas mensagens customizadas serão perdidas.')) return;
+  config = { ...DEFAULT_CONFIG };
+  saveConfig();
+  populateConfigForm();
+  renderLeads();
+  showToast('↺ Configurações restauradas', 'info');
+}
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function renderAll() {
+  renderCounters();
+  renderCityFilter();
+  renderLeads();
+}
+
+/* ============ TOAST ============ */
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+/* ============ MODAL CLEAR ============ */
+function showClearModal() {
+  if (leads.length === 0) {
+    showToast('Não há leads para limpar', 'warning');
+    return;
+  }
+  document.getElementById('modal-clear').classList.add('show');
+}
+function hideClearModal() {
+  document.getElementById('modal-clear').classList.remove('show');
+}
+async function confirmClear() {
+  const hadLeads = leads.slice();
+  leads = [];
+  saveLocalCache();
+  // Deleta todos da nuvem
+  if (_sb && currentUser && hadLeads.length > 0) {
+    setSyncStatus('syncing', 'Limpando nuvem...');
+    try {
+      const ids = hadLeads.map(l => l.id);
+      // Deleta em lotes de 100
+      for (let i = 0; i < ids.length; i += 100) {
+        const batch = ids.slice(i, i + 100);
+        const { error } = await _sb.from('leads').delete().in('id', batch);
+        if (error) throw error;
+      }
+      setSyncStatus('online', 'Sincronizado');
+    } catch (err) {
+      console.error('Erro ao limpar nuvem:', err);
+      setSyncStatus('offline', 'Erro');
+      showToast('Removido localmente, mas falhou na nuvem. Tente novamente.', 'warning');
+    }
+  }
+  renderAll();
+  hideClearModal();
+  showToast('Todos os leads foram removidos', 'success');
+}
+
+/* ============ EVENT BINDINGS ============ */
+// Login (email + senha)
+async function handleLogin() {
+  clearLoginError();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showLoginError('Digite um email válido.');
+    return;
+  }
+  if (!password) {
+    showLoginError('Digite sua senha.');
+    return;
+  }
+  if (!_sb) {
+    showLoginError('Conexão com a nuvem não está pronta. Veja o status acima.');
+    return;
+  }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  console.log('[Login] tentando login para', email);
+  const result = await signInWithEmailPassword(email, password);
+  console.log('[Login] resultado:', result);
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
+  if (!result.ok) {
+    showLoginError('❌ <b>Erro ao entrar:</b><br><code>' + result.error + '</code>');
+    return;
+  }
+  // Sucesso: handleAuthStateChange cuida do resto
+  showToast('Bem-vindo!', 'success');
+}
+
+// Criar conta
+async function handleSignup() {
+  clearLoginError();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showLoginError('Digite um email válido.');
+    return;
+  }
+  if (!password) {
+    showLoginError('Digite uma senha (mínimo 6 caracteres).');
+    return;
+  }
+  if (password.length < 6) {
+    showLoginError('Senha precisa ter pelo menos 6 caracteres.');
+    return;
+  }
+  if (!_sb) {
+    showLoginError('Conexão com a nuvem não está pronta. Veja o status acima.');
+    return;
+  }
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true;
+  btn.textContent = 'Criando...';
+  console.log('[Signup] tentando criar conta para', email);
+  const result = await signUpWithEmailPassword(email, password);
+  console.log('[Signup] resultado:', result);
+  btn.disabled = false;
+  btn.textContent = 'Criar conta';
+  if (!result.ok) {
+    if (result.needsConfirmation) {
+      showLoginError('📧 <b>Conta criada!</b><br>' + result.error);
+    } else {
+      showLoginError('❌ <b>Erro ao criar conta:</b><br><code>' + result.error + '</code>');
+    }
+    return;
+  }
+  showToast('Conta criada! Bem-vindo.', 'success');
+  // handleAuthStateChange cuida do resto
+}
+
+document.getElementById('login-btn').addEventListener('click', handleLogin);
+document.getElementById('signup-btn').addEventListener('click', handleSignup);
+document.getElementById('login-email').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('login-password').focus();
+  }
+});
+document.getElementById('login-password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleLogin();
+  }
+});
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', logout);
+
+// Sync local → nuvem
+document.getElementById('sync-local-btn').addEventListener('click', migrateLocalToCloud);
+
+document.getElementById('csv-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) handleCSVImport(file);
+  e.target.value = ''; // permite reimportar o mesmo arquivo
+});
+
+document.getElementById('export-btn').addEventListener('click', exportCSV);
+document.getElementById('backup-btn').addEventListener('click', exportJSONBackup);
+document.getElementById('restore-btn').addEventListener('click', () => {
+  document.getElementById('restore-input').click();
+});
+document.getElementById('restore-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) handleJSONRestore(file);
+  e.target.value = '';
+});
+
+// Modal Colar CSV
+document.getElementById('paste-csv-btn').addEventListener('click', showPasteModal);
+document.getElementById('paste-cancel').addEventListener('click', hidePasteModal);
+document.getElementById('paste-confirm').addEventListener('click', handlePasteImport);
+document.getElementById('modal-paste').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-paste') hidePasteModal();
+});
+// Ctrl+Enter no textarea para importar
+document.getElementById('paste-csv-textarea').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    handlePasteImport();
+  }
+});
+
+document.getElementById('clear-btn').addEventListener('click', showClearModal);
+document.getElementById('modal-cancel').addEventListener('click', hideClearModal);
+document.getElementById('modal-confirm').addEventListener('click', confirmClear);
+document.getElementById('modal-clear').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-clear') hideClearModal();
+});
+
+document.getElementById('city-filter').addEventListener('change', (e) => {
+  filters.city = e.target.value;
+  renderLeads();
+});
+document.getElementById('website-filter').addEventListener('change', (e) => {
+  filters.website = e.target.value;
+  renderLeads();
+});
+document.getElementById('status-filter').addEventListener('change', (e) => {
+  filters.status = e.target.value;
+  renderLeads();
+});
+document.getElementById('search-input').addEventListener('input', (e) => {
+  filters.search = e.target.value.trim();
+  renderLeads();
+});
+
+// Botão "Pular espera" do timer (Parte 2)
+document.getElementById('timer-skip').addEventListener('click', () => {
+  if (confirm('Pular a espera do timer? Isso permite abordar outro lead imediatamente.')) {
+    skipApproachTimer();
+  }
+});
+
+// Painel de configuração (Parte 3)
+document.getElementById('config-toggle').addEventListener('click', () => {
+  document.getElementById('config-panel').classList.toggle('open');
+});
+document.getElementById('cfg-save').addEventListener('click', saveConfigFromForm);
+document.getElementById('cfg-reset').addEventListener('click', resetConfig);
+
+// Clique nos contadores pra filtrar (Parte 4)
+document.querySelectorAll('.counter[data-filter]').forEach(c => {
+  c.addEventListener('click', () => {
+    const f = c.getAttribute('data-filter');
+    // Se clicar no mesmo, remove o filtro (toggle)
+    if (filters.stateFilter === f) {
+      filters.stateFilter = null;
+      document.querySelectorAll('.counter').forEach(x => x.classList.remove('active'));
+    } else {
+      filters.stateFilter = f === 'total' ? null : f;
+      document.querySelectorAll('.counter').forEach(x => x.classList.remove('active'));
+      if (f !== 'total') c.classList.add('active');
+    }
+    renderLeads();
+    // Scroll suave pra lista
+    document.querySelector('.leads-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+
+
+/* ============ INIT ============ */
+// Handler global: captura QUALQUER erro não tratado e mostra na tela
+window.addEventListener('error', (e) => {
+  console.error('[Erro global]', e.error || e.message);
+  const errBox = document.getElementById('login-error-msg');
+  const connBox = document.getElementById('conn-status');
+  if (errBox) {
+    errBox.classList.remove('hidden');
+    errBox.innerHTML = '🐞 <b>Erro no app:</b><br><code>' +
+      (e.message || 'desconhecido') + '</code><br><br>' +
+      'Abra o console (F12) para detalhes e me mande o print.';
+  }
+  if (connBox) {
+    connBox.classList.remove('ok');
+    connBox.classList.add('err');
+    const dot = connBox.querySelector('.dot');
+    if (dot) dot.classList.remove('pulsing');
+    const txt = document.getElementById('conn-status-text');
+    if (txt) txt.textContent = 'Erro no app';
+  }
+});
+
+(async function init() {
+  try {
+    console.log('[Init] começando...');
+    // Carrega configurações personalizadas (Parte 3)
+    loadConfig();
+    populateConfigForm();
+    // Inicia auto-refresh (Pra detectar mudanças de estado dos leads ao longo do tempo)
+    startAutoRefresh();
+    // Mostra banner de aviso se estiver rodando em iframe (preview embutida)
+    if (isInIframe()) {
+      document.getElementById('iframe-banner').classList.remove('hidden');
+    }
+    const dismissBtn = document.getElementById('iframe-dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        document.getElementById('iframe-banner').classList.add('hidden');
+      });
+    }
+
+    console.log('[Init] verificando SDK Supabase...', typeof window.supabase);
+    // Inicializa Supabase
+    if (!initSupabase()) {
+      console.warn('[Init] initSupabase retornou false');
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) leads = JSON.parse(raw) || [];
+      } catch (e) {}
+      renderAll();
+      return;
+    }
+    console.log('[Init] Supabase inicializado ✓');
+
+    // Escuta mudanças de auth (login, logout)
+    _sb.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth]', event, session?.user?.email || 'no user');
+      handleAuthStateChange(session);
+    });
+
+    // Verifica sessão existente (already logged in)
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) {
+      handleAuthStateChange(session);
+    } else {
+      showLoginOverlay();
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) leads = JSON.parse(raw) || [];
+      } catch (e) {}
+      renderAll();
+    }
+
+    // Online/offline detection
+    window.addEventListener('online', () => {
+      isOnline = true;
+      if (currentUser) {
+        setSyncStatus('syncing', 'Reconectando...');
+        loadState().then(() => setSyncStatus('online', 'Sincronizado'));
+      }
+    });
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      if (currentUser) setSyncStatus('offline', 'Offline');
+    });
+
+    console.log('[Init] App inicializado. User:', currentUser?.email || 'não logado');
+  } catch (err) {
+    console.error('[Init] ERRO capturado:', err);
+    setConnStatus('err', 'Erro na inicialização');
+    showLoginError(
+      '🐞 <b>Erro ao iniciar o app:</b><br>' +
+      '<code>' + (err.message || err) + '</code><br><br>' +
+      '<b>Stack:</b><br><code style="font-size:10px">' +
+      (err.stack || '').split('\n').slice(0, 3).join('<br>') + '</code>'
+    );
+  }
+})();
+</script>
+
+<div class="footer-info">
+  Prospecção WhatsApp · Supabase + Vercel · Sincronizado na nuvem · Envio sempre manual
+</div>
+
+</body>
+</html>
