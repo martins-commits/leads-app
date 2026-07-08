@@ -1134,6 +1134,106 @@
     color: #B0B0B0;
   }
 
+  /* ============ LEAD FIXADO NO TOPO (pino) ============ */
+  .pinned-section {
+    padding: 0 16px 12px;
+  }
+  .pinned-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pinned-label::before {
+    content: "📌";
+    font-size: 13px;
+  }
+  .lead-card.is-pinned {
+    border: 2px solid var(--accent);
+    border-left-width: 6px;
+    background: var(--bg-elevated);
+    box-shadow: 0 4px 20px rgba(26, 75, 140, 0.25);
+    animation: pinGlow 2.5s ease-in-out infinite;
+  }
+  @keyframes pinGlow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(26, 75, 140, 0.25); }
+    50% { box-shadow: 0 4px 28px rgba(26, 75, 140, 0.45); }
+  }
+  .pinned-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .pinned-actions .btn-pinned {
+    padding: 11px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    border: 1px solid;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .pinned-actions .btn-pinned:active { transform: scale(0.97); }
+  .pinned-actions .btn-pinned-approach {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    grid-column: span 2;
+  }
+  .pinned-actions .btn-pinned-no-wa {
+    background: transparent;
+    color: #B0B0B0;
+    border-color: #6A6A6A;
+    border-style: dashed;
+  }
+  .pinned-actions .btn-pinned-no-wa:hover { background: rgba(106, 106, 106, 0.15); }
+  .pinned-actions .btn-pinned-discard {
+    background: transparent;
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .pinned-actions .btn-pinned-discard:hover { background: var(--danger-bg); }
+  .pinned-actions .btn-pinned-interest {
+    background: transparent;
+    color: var(--success);
+    border-color: var(--success);
+  }
+  .pinned-actions .btn-pinned-interest:hover { background: var(--success-bg); }
+  .pinned-actions .btn-pinned-unpin {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    border-color: var(--border);
+    grid-column: span 2;
+    font-size: 11px;
+  }
+  .pinned-actions .btn-pinned-unpin:hover { background: var(--bg-card-hover); }
+
+  /* Contadores "hoje" clicáveis */
+  .today-item {
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .today-item:active { transform: scale(0.96); }
+  .today-item.active {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .today-item:hover { opacity: 0.85; }
+
   /* ============ BOTÃO "Número não está no WhatsApp" ============ */
   .btn-no-whatsapp {
     width: 100%;
@@ -1346,22 +1446,22 @@
   </div>
   <!-- Resumo de atividade hoje -->
   <div class="today-summary" id="today-summary">
-    <div class="today-item">
+    <div class="today-item" data-today-filter="abordagens" title="Clique para ver só os leads abordados hoje">
       <span class="today-num" id="today-abordagens">0</span>
       <span class="today-lbl">Abordagens hoje</span>
     </div>
     <div class="today-divider"></div>
-    <div class="today-item">
+    <div class="today-item" data-today-filter="fu1" title="Clique para ver só os leads com F1 enviado hoje">
       <span class="today-num" id="today-fu1">0</span>
       <span class="today-lbl">F1 hoje</span>
     </div>
     <div class="today-divider"></div>
-    <div class="today-item">
+    <div class="today-item" data-today-filter="fu2" title="Clique para ver só os leads com F2 enviado hoje">
       <span class="today-num" id="today-fu2">0</span>
       <span class="today-lbl">F2 hoje</span>
     </div>
     <div class="today-divider"></div>
-    <div class="today-item">
+    <div class="today-item" data-today-filter="interested" title="Clique para ver só os leads marcados como interessados hoje">
       <span class="today-num" id="today-interested">0</span>
       <span class="today-lbl">Interessados hoje</span>
     </div>
@@ -1460,6 +1560,9 @@
   <span>Mostrando <b id="shown-count">0</b> de <b id="list-total">0</b> leads</span>
   <span id="priority-hint"></span>
 </div>
+
+<!-- Lead fixado no topo (pino) — renderizado dinamicamente -->
+<div class="pinned-section" id="pinned-section" style="display:none"></div>
 
 <main class="leads-list" id="leads-list"></main>
 
@@ -1586,13 +1689,46 @@ let isOnline = navigator.onLine;
 
 /* ============ ESTADO ============ */
 let leads = [];        // [{id, name, phoneRaw, phone, phoneValid, websiteRaw, websiteType, city, createdAt, status}]
-let filters = { city: '', website: '', status: '', search: '', stateFilter: null };
+let filters = { city: '', website: '', status: '', search: '', stateFilter: null, todayFilter: null };
+// todayFilter: null | 'abordagens' | 'fu1' | 'fu2' | 'interested' (clicou num contador "hoje")
 
 // ============ ESTADO: último lead actionado (para mostrar botão "Número não está no WhatsApp") ============
 let lastActionedLeadId = null;     // id do lead que acabou de receber abordagem/followup
 let lastActionedAt = 0;            // timestamp (ms) da última ação
 let lastActionType = null;         // 'abordagem' | 'fu1' | 'fu2'
 const ACTION_WINDOW_MS = 15 * 60 * 1000; // 15 min de janela pra clicar em "Número não está no WhatsApp"
+
+// ============ ESTADO: lead fixado no topo (pino) ============
+// Após Mandar Abordagem / F1 / F2, o lead é fixado no topo da lista
+// com botões de ação rápida (Sem WhatsApp, Descartar, Reenviar, Interessado, Desafixar).
+// Persiste em localStorage pra sobreviver a refreshes. Só some quando o usuário dispensa.
+let pinnedLeadId = null;
+const PINNED_KEY = 'leads_pinned_lead_v1';
+
+function loadPinnedLead() {
+  try {
+    pinnedLeadId = localStorage.getItem(PINNED_KEY) || null;
+  } catch (e) {
+    pinnedLeadId = null;
+  }
+}
+
+function savePinnedLead() {
+  try {
+    if (pinnedLeadId) localStorage.setItem(PINNED_KEY, pinnedLeadId);
+    else localStorage.removeItem(PINNED_KEY);
+  } catch (e) {}
+}
+
+function setPinnedLead(leadId) {
+  pinnedLeadId = leadId;
+  savePinnedLead();
+}
+
+function clearPinnedLead() {
+  pinnedLeadId = null;
+  savePinnedLead();
+}
 
 // ============ ESTADO: notificações e PWA ============
 let notifiedStates = {};           // { leadId: { state: 'fu1_ready'|'fu2_ready', at: ms } }
@@ -2927,6 +3063,29 @@ function applyFiltersAndSort() {
     // 'total' não filtra
   }
 
+  // Filtro "hoje" (clicou em Abordagens hoje / F1 hoje / F2 hoje / Interessados hoje)
+  // Substitui o filtro de estado (não combina — clique num contador "hoje" limpa o stateFilter)
+  if (filters.todayFilter) {
+    const todayStr = new Date().toDateString();
+    if (filters.todayFilter === 'abordagens') {
+      result = result.filter(l =>
+        l.abordagemAt && new Date(l.abordagemAt).toDateString() === todayStr
+      );
+    } else if (filters.todayFilter === 'fu1') {
+      result = result.filter(l =>
+        l.followup1At && new Date(l.followup1At).toDateString() === todayStr
+      );
+    } else if (filters.todayFilter === 'fu2') {
+      result = result.filter(l =>
+        l.followup2At && new Date(l.followup2At).toDateString() === todayStr
+      );
+    } else if (filters.todayFilter === 'interested') {
+      result = result.filter(l =>
+        l.interestedAt && new Date(l.interestedAt).toDateString() === todayStr
+      );
+    }
+  }
+
   // Ordenação: prioridade (sem site) primeiro, depois por cidade, depois por nome
   result.sort((a, b) => {
     const aPrio = isPrioritySite(a.websiteType) ? 0 : 1;
@@ -2947,10 +3106,160 @@ function webTagClass(type) {
   return 'web-social';
 }
 
+// Renderiza o lead fixado no topo (pino) — separado da lista principal
+function renderPinnedLead() {
+  const section = document.getElementById('pinned-section');
+  if (!section) return;
+
+  // Se não tem pino ou o lead não existe mais, esconde a seção
+  if (!pinnedLeadId) {
+    section.style.display = 'none';
+    section.innerHTML = '';
+    return;
+  }
+  const lead = leads.find(l => l.id === pinnedLeadId);
+  if (!lead) {
+    // Lead foi deletado — limpa o pino
+    clearPinnedLead();
+    section.style.display = 'none';
+    section.innerHTML = '';
+    return;
+  }
+
+  // Estado atual do lead
+  const state = lead.phoneValid ? getLeadState(lead) : 'invalid';
+  const isLocked = timerState.active && timerState.clickedLeadId !== lead.id;
+
+  // Links wa.me
+  const abordagemLink = lead.phoneValid ? buildWaLink(lead.phone, config.mensagemAbordagem) : '';
+  const fu1Link = lead.phoneValid ? buildWaLink(lead.phone, config.mensagemFollowup1) : '';
+  const fu2Link = lead.phoneValid ? buildWaLink(lead.phone, config.mensagemFollowup2) : '';
+
+  // Status badge
+  let statusBadge;
+  if (state === 'invalid') statusBadge = '<span class="lead-status status-invalid">Sem WhatsApp válido</span>';
+  else if (state === 'no_whatsapp') statusBadge = '<span class="lead-status status-no-whatsapp">Sem WhatsApp</span>';
+  else if (state === 'discarded') statusBadge = '<span class="lead-status status-discarded">Descartado</span>';
+  else if (state === 'interested') statusBadge = '<span class="lead-status status-interested">Interessado ✓</span>';
+  else if (state === 'fu2_sent') statusBadge = '<span class="lead-status status-fu2-sent">Ciclo encerrado</span>';
+  else if (state === 'fu2_ready') statusBadge = '<span class="lead-status status-fu2-ready">F2 pronto</span>';
+  else if (state === 'fu1_sent') statusBadge = '<span class="lead-status status-fu1-sent">F1 enviado</span>';
+  else if (state === 'fu1_ready') statusBadge = '<span class="lead-status status-fu1-ready">F1 pronto</span>';
+  else if (state === 'waiting') statusBadge = '<span class="lead-status status-waiting">Aguardando resposta</span>';
+  else if (isLocked) statusBadge = '<span class="lead-status status-locked">Aguardando timer</span>';
+  else statusBadge = '<span class="lead-status status-pending">Aguardando abordagem</span>';
+
+  // Determina qual botão "Reenviar abordagem / F1 / F2" mostrar
+  // Se o lead está em estado terminal (discarded/no_whatsapp/interested), não mostra botão de reenvio
+  let reenviarBtn = '';
+  if (state === 'no_whatsapp' || state === 'discarded' || state === 'interested') {
+    // Em estado terminal: botão Desfazer no lugar do Reenviar
+    reenviarBtn = `<button class="btn-pinned btn-pinned-unpin" data-pinned-undo="${lead.id}">↺ Desfazer status</button>`;
+  } else if (state === 'invalid') {
+    reenviarBtn = ''; // não dá pra reenviar sem telefone válido
+  } else if (state === 'pending') {
+    reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-approach="${lead.id}" data-wa-link="${abordagemLink}">
+      <span class="wa-ico-big"></span> Mandar Abordagem
+    </button>`;
+  } else if (state === 'fu1_ready') {
+    reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-followup1="${lead.id}" data-wa-link="${fu1Link}">
+      <span class="wa-ico-big"></span> Enviar Follow-up 1
+    </button>`;
+  } else if (state === 'fu2_ready') {
+    reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-followup2="${lead.id}" data-wa-link="${fu2Link}">
+      <span class="wa-ico-big"></span> Enviar Follow-up 2
+    </button>`;
+  } else if (state === 'waiting' || state === 'fu1_sent') {
+    reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-approach="${lead.id}" data-wa-link="${abordagemLink}">
+      <span class="wa-ico-big"></span> Reenviar abordagem
+    </button>`;
+  } else if (state === 'fu2_sent') {
+    reenviarBtn = `<div style="text-align:center;font-size:11px;color:var(--text-muted);padding:8px;border:1px dashed var(--border);border-radius:8px;grid-column:span 2">Ciclo encerrado</div>`;
+  }
+
+  // Botões de ação rápida (só aparecem se o lead NÃO está em estado terminal)
+  let actionBtns = '';
+  if (state !== 'no_whatsapp' && state !== 'discarded' && state !== 'interested') {
+    actionBtns = `
+      <button class="btn-pinned btn-pinned-no-wa" data-pinned-no-wa="${lead.id}">
+        ✕ Sem WhatsApp
+      </button>
+      <button class="btn-pinned btn-pinned-discard" data-pinned-discard="${lead.id}">
+        ✕ Descartar
+      </button>
+      ${state !== 'fu2_sent' && state !== 'invalid' ? `
+        <button class="btn-pinned btn-pinned-interest" data-pinned-interest="${lead.id}">
+          ✓ Interessado
+        </button>
+      ` : ''}
+      <button class="btn-pinned btn-pinned-unpin" data-pinned-unpin="${lead.id}">
+        ↥ Desafixar do topo
+      </button>
+    `;
+  } else {
+    // Em estado terminal: só Desafixar (além do Desfazer já no reenviarBtn)
+    actionBtns = `
+      <button class="btn-pinned btn-pinned-unpin" data-pinned-unpin="${lead.id}">
+        ↥ Desafixar do topo
+      </button>
+    `;
+  }
+
+  // Timestamps
+  let timestampsHtml = '';
+  const fmt = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' +
+           d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+  const parts = [];
+  if (lead.abordagemAt) parts.push(`📨 Abordagem: <b>${fmt(lead.abordagemAt)}</b>`);
+  if (lead.followup1At) parts.push(`F1: <b>${fmt(lead.followup1At)}</b>`);
+  if (lead.followup2At) parts.push(`F2: <b>${fmt(lead.followup2At)}</b>`);
+  if (lead.noWhatsappAt) parts.push(`✕ Sem WhatsApp: <b>${fmt(lead.noWhatsappAt)}</b>`);
+  if (parts.length > 0) {
+    timestampsHtml = `<div class="lead-meta" style="margin-top:6px;font-size:11px;opacity:0.7;flex-direction:column;align-items:flex-start;gap:2px">
+      ${parts.map(p => `<span class="item">${p}</span>`).join('')}
+    </div>`;
+  }
+
+  section.innerHTML = `
+    <div class="pinned-label">Fixado no topo — lead em ação</div>
+    <div class="lead-card is-pinned" data-id="${lead.id}">
+      <div class="lead-head">
+        <div class="lead-name">${escapeHTML(lead.name)}</div>
+        ${statusBadge}
+      </div>
+      <div class="lead-meta">
+        <span class="item city-ico"><b>${escapeHTML(lead.city || '—')}</b></span>
+        <span class="item phone-ico">${lead.phoneValid ? formatPhoneDisplay(lead.phone) : escapeHTML(lead.phoneRaw || '—')}</span>
+      </div>
+      <div class="lead-meta">
+        <span class="item web-ico">
+          <span class="web-tag ${webTagClass(lead.websiteType)}">${lead.websiteType}</span>
+        </span>
+        ${lead.websiteRaw ? `<span class="item" style="font-size:11px;word-break:break-all;opacity:.7">${escapeHTML(lead.websiteRaw)}</span>` : ''}
+      </div>
+      ${timestampsHtml}
+      <div class="pinned-actions">
+        ${reenviarBtn}
+        ${actionBtns}
+      </div>
+    </div>
+  `;
+  section.style.display = 'block';
+
+  // Bind dos botões do pino
+  bindPinnedActions();
+}
+
 function renderLeads() {
   const list = document.getElementById('leads-list');
   const empty = document.getElementById('empty-state');
   const filtered = applyFiltersAndSort();
+
+  // Renderiza o pino primeiro (sempre, independente dos filtros)
+  renderPinnedLead();
 
   document.getElementById('shown-count').textContent = filtered.length;
   document.getElementById('list-total').textContent = leads.length;
@@ -3294,13 +3603,16 @@ async function handleApproachClick(leadId, waLink) {
   lastActionedAt = Date.now();
   lastActionType = 'abordagem';
 
+  // Fixa o lead no topo da lista (pino) — pra não se perder quando voltar do WhatsApp
+  setPinnedLead(leadId);
+
   // Abre o WhatsApp em nova aba
   window.open(waLink, '_blank', 'noopener,noreferrer');
 
   // Inicia o timer que trava os OUTROS leads
   startApproachTimer(leadId);
 
-  showToast('📨 Abordagem registrada! WhatsApp aberto em nova aba.', 'success');
+  showToast('📨 Abordagem registrada! Lead fixado no topo. WhatsApp aberto em nova aba.', 'success');
   renderLeads();
 }
 
@@ -3436,6 +3748,122 @@ function bindLeadActions() {
   });
 }
 
+// Bind dos botões do lead fixado no topo (pino)
+function bindPinnedActions() {
+  // Mandar Abordagem (pino)
+  const approachBtn = document.querySelector('[data-pinned-approach]');
+  if (approachBtn) {
+    approachBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = approachBtn.getAttribute('data-pinned-approach');
+      const waLink = approachBtn.getAttribute('data-wa-link');
+      if (!leadId || !waLink) return;
+      if (timerState.active && timerState.clickedLeadId !== leadId) {
+        showToast('⏱ Aguarde o timer acabar para abordar outro lead', 'warning');
+        return;
+      }
+      await handleApproachClick(leadId, waLink);
+    });
+  }
+
+  // Follow-up 1 (pino)
+  const fu1Btn = document.querySelector('[data-pinned-followup1]');
+  if (fu1Btn) {
+    fu1Btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = fu1Btn.getAttribute('data-pinned-followup1');
+      const waLink = fu1Btn.getAttribute('data-wa-link');
+      if (!leadId || !waLink) return;
+      if (timerState.active && timerState.clickedLeadId !== leadId) {
+        showToast('⏱ Aguarde o timer acabar para abordar outro lead', 'warning');
+        return;
+      }
+      await handleFollowupClick(leadId, waLink, 1);
+    });
+  }
+
+  // Follow-up 2 (pino)
+  const fu2Btn = document.querySelector('[data-pinned-followup2]');
+  if (fu2Btn) {
+    fu2Btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = fu2Btn.getAttribute('data-pinned-followup2');
+      const waLink = fu2Btn.getAttribute('data-wa-link');
+      if (!leadId || !waLink) return;
+      if (timerState.active && timerState.clickedLeadId !== leadId) {
+        showToast('⏱ Aguarde o timer acabar para abordar outro lead', 'warning');
+        return;
+      }
+      await handleFollowupClick(leadId, waLink, 2);
+    });
+  }
+
+  // Sem WhatsApp (pino)
+  const noWaBtn = document.querySelector('[data-pinned-no-wa]');
+  if (noWaBtn) {
+    noWaBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = noWaBtn.getAttribute('data-pinned-no-wa');
+      if (!leadId) return;
+      if (!confirm('Marcar este lead como "Número não está no WhatsApp"? Ele será removido da contagem de hoje e sairá do fluxo de follow-up.')) return;
+      await markLeadAsNoWhatsapp(leadId, lastActionType || 'abordagem');
+    });
+  }
+
+  // Descartar (pino)
+  const discardBtn = document.querySelector('[data-pinned-discard]');
+  if (discardBtn) {
+    discardBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = discardBtn.getAttribute('data-pinned-discard');
+      if (!leadId) return;
+      if (!confirm('Tem certeza que quer descartar este lead?')) return;
+      await markLeadStatus(leadId, 'discarded');
+    });
+  }
+
+  // Interessado (pino)
+  const interestBtn = document.querySelector('[data-pinned-interest]');
+  if (interestBtn) {
+    interestBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = interestBtn.getAttribute('data-pinned-interest');
+      if (!leadId) return;
+      await markLeadStatus(leadId, 'interested');
+    });
+  }
+
+  // Desfazer status (pino, em estado terminal)
+  const undoBtn = document.querySelector('[data-pinned-undo]');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = undoBtn.getAttribute('data-pinned-undo');
+      if (!leadId) return;
+      await undoLeadStatus(leadId);
+    });
+  }
+
+  // Desafixar do topo (pino) — só remove do topo, não muda status
+  const unpinBtn = document.querySelector('[data-pinned-unpin]');
+  if (unpinBtn) {
+    unpinBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearPinnedLead();
+      renderPinnedLead();
+      showToast('↥ Lead desafixado do topo.', 'info');
+    });
+  }
+}
+
 /* ============ PARTE 3 — HANDLERS DE FOLLOW-UP E STATUS ============ */
 async function handleFollowupClick(leadId, waLink, followupNum) {
   const lead = leads.find(l => l.id === leadId);
@@ -3468,11 +3896,14 @@ async function handleFollowupClick(leadId, waLink, followupNum) {
   lastActionedAt = Date.now();
   lastActionType = followupNum === 1 ? 'fu1' : 'fu2';
 
+  // Fixa o lead no topo da lista (pino)
+  setPinnedLead(leadId);
+
   // Abre o WhatsApp em nova aba
   window.open(waLink, '_blank', 'noopener,noreferrer');
   // Inicia o timer que trava os OUTROS leads
   startApproachTimer(leadId);
-  showToast(`📨 Follow-up ${followupNum} enviado! WhatsApp aberto.`, 'success');
+  showToast(`📨 Follow-up ${followupNum} enviado! Lead fixado no topo. WhatsApp aberto.`, 'success');
   renderLeads();
 }
 
@@ -3867,6 +4298,31 @@ document.querySelectorAll('.counter[data-filter]').forEach(c => {
       document.querySelectorAll('.counter').forEach(x => x.classList.remove('active'));
       if (f !== 'total') c.classList.add('active');
     }
+    // Ao clicar num contador de estado, limpa qualquer filtro "hoje" ativo (substitui)
+    filters.todayFilter = null;
+    document.querySelectorAll('.today-item').forEach(x => x.classList.remove('active'));
+    renderLeads();
+    // Scroll suave pra lista
+    document.querySelector('.leads-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// Clique nos contadores "hoje" (Abordagens hoje / F1 hoje / F2 hoje / Interessados hoje)
+document.querySelectorAll('.today-item[data-today-filter]').forEach(c => {
+  c.addEventListener('click', () => {
+    const f = c.getAttribute('data-today-filter');
+    // Se clicar no mesmo, remove o filtro (toggle)
+    if (filters.todayFilter === f) {
+      filters.todayFilter = null;
+      document.querySelectorAll('.today-item').forEach(x => x.classList.remove('active'));
+    } else {
+      filters.todayFilter = f;
+      document.querySelectorAll('.today-item').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      // Ao clicar num contador "hoje", limpa qualquer filtro de estado ativo (substitui)
+      filters.stateFilter = null;
+      document.querySelectorAll('.counter').forEach(x => x.classList.remove('active'));
+    }
     renderLeads();
     // Scroll suave pra lista
     document.querySelector('.leads-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3903,6 +4359,8 @@ window.addEventListener('error', (e) => {
     // Carrega configurações personalizadas (Parte 3)
     loadConfig();
     populateConfigForm();
+    // Carrega lead fixado no topo (persiste entre sessões)
+    loadPinnedLead();
     // Inicia auto-refresh (Pra detectar mudanças de estado dos leads ao longo do tempo)
     startAutoRefresh();
     // Inicializa PWA (Service Worker + banners de instalação/notificação)
