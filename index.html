@@ -6,6 +6,11 @@
 <meta name="theme-color" content="#0A0A0A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Elevo Leads">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Prospecção WhatsApp</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1117,6 +1122,126 @@
     border-top: 1px solid var(--border);
     margin-top: 8px;
   }
+
+  /* ============ STATUS "Sem WhatsApp" (cinza) ============ */
+  .lead-card.status-no-whatsapp {
+    border-left-color: #6A6A6A;
+    background: rgba(106, 106, 106, 0.08);
+    opacity: 0.55;
+  }
+  .status-no-whatsapp {
+    background: rgba(106, 106, 106, 0.25);
+    color: #B0B0B0;
+  }
+
+  /* ============ BOTÃO "Número não está no WhatsApp" ============ */
+  .btn-no-whatsapp {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed #6A6A6A;
+    color: #B0B0B0;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    animation: pulseNoWhatsapp 2s ease-in-out infinite;
+  }
+  @keyframes pulseNoWhatsapp {
+    0%, 100% { border-color: #6A6A6A; }
+    50% { border-color: #B0B0B0; }
+  }
+  .btn-no-whatsapp:active { transform: scale(0.97); }
+  .btn-no-whatsapp:hover { background: rgba(106, 106, 106, 0.15); }
+
+  /* ============ BANNER PWA "Adicionar à tela inicial" ============ */
+  .pwa-banner {
+    display: none;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 0 16px 12px;
+    font-size: 12px;
+    color: var(--text);
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    line-height: 1.4;
+  }
+  .pwa-banner.show { display: flex; }
+  .pwa-banner .txt { flex: 1; }
+  .pwa-banner .txt b { color: #6BA6E8; }
+  .pwa-banner button.install-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .pwa-banner button.install-btn:active { transform: scale(0.97); }
+  .pwa-banner .dismiss {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  /* Banner de permissão de notificação */
+  .notif-perm-banner {
+    display: none;
+    background: var(--warning-dark-bg);
+    border: 1px solid var(--warning-dark);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 0 16px 12px;
+    font-size: 12px;
+    color: var(--text);
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    line-height: 1.4;
+  }
+  .notif-perm-banner.show { display: flex; }
+  .notif-perm-banner .txt { flex: 1; }
+  .notif-perm-banner button.enable-btn {
+    background: var(--warning-dark);
+    color: #fff;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .notif-perm-banner button.enable-btn:active { transform: scale(0.97); }
+  .notif-perm-banner .dismiss {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -1127,6 +1252,24 @@
     Você está usando o app dentro de uma <b>preview embutida</b>. Os links do WhatsApp podem ser bloqueados pelo navegador. <b>Baixe o arquivo HTML</b> e abra no celular/desktop para funcionar 100%, ou use o botão <b>⧉</b> ao lado de cada lead para copiar o link.
   </span>
   <button class="dismiss" id="iframe-dismiss">OK</button>
+</div>
+
+<!-- BANNER: Permissão de notificações -->
+<div class="notif-perm-banner" id="notif-perm-banner">
+  <span class="txt">
+    🔔 <b>Ative as notificações</b> para ser avisado quando um lead estiver pronto para Follow-up 1 ou 2.
+  </span>
+  <button class="enable-btn" id="notif-enable-btn">Permitir</button>
+  <button class="dismiss" id="notif-dismiss-btn">×</button>
+</div>
+
+<!-- BANNER: Instalar PWA (Adicionar à tela inicial) -->
+<div class="pwa-banner" id="pwa-banner">
+  <span class="txt">
+    📲 <b>Adicione à tela inicial</b> para receber notificações em segundo plano e usar como app.
+  </span>
+  <button class="install-btn" id="pwa-install-btn">Instalar</button>
+  <button class="dismiss" id="pwa-dismiss-btn">×</button>
 </div>
 
 <!-- TELA DE LOGIN -->
@@ -1445,6 +1588,19 @@ let isOnline = navigator.onLine;
 let leads = [];        // [{id, name, phoneRaw, phone, phoneValid, websiteRaw, websiteType, city, createdAt, status}]
 let filters = { city: '', website: '', status: '', search: '', stateFilter: null };
 
+// ============ ESTADO: último lead actionado (para mostrar botão "Número não está no WhatsApp") ============
+let lastActionedLeadId = null;     // id do lead que acabou de receber abordagem/followup
+let lastActionedAt = 0;            // timestamp (ms) da última ação
+let lastActionType = null;         // 'abordagem' | 'fu1' | 'fu2'
+const ACTION_WINDOW_MS = 15 * 60 * 1000; // 15 min de janela pra clicar em "Número não está no WhatsApp"
+
+// ============ ESTADO: notificações e PWA ============
+let notifiedStates = {};           // { leadId: { state: 'fu1_ready'|'fu2_ready', at: ms } }
+const NOTIFIED_KEY = 'leads_notified_states_v1';
+let swRegistration = null;         // Service Worker registration
+let deferredPrompt = null;         // evento beforeinstallprompt
+let notifPermissionAsked = false;  // já pediu permissão nesta sessão?
+
 /* ============ INICIALIZAÇÃO SUPABASE ============ */
 function setConnStatus(state, text) {
   const box = document.getElementById('conn-status');
@@ -1667,7 +1823,9 @@ function rowToLead(row) {
     followup1At: row.followup1_at || null,
     followup2At: row.followup2_at || null,
     discardedAt: row.discarded_at || null,
-    interestedAt: row.interested_at || null
+    interestedAt: row.interested_at || null,
+    // Novo campo: "Sem WhatsApp" (requer coluna no_whatsapp_at no Supabase - ver SQL no README)
+    noWhatsappAt: row.no_whatsapp_at || null
   };
 }
 
@@ -1953,14 +2111,15 @@ function isPrioritySite(type) {
 
 /* ============ PARTE 3 — CÁLCULO DE FOLLOW-UPS ============ */
 // Estado do lead (Parte 3):
-// - 'pending'   : aguardando abordagem (não foi abordado ainda)
-// - 'waiting'   : abordagem feita, aguardando resposta (amarelo claro)
-// - 'fu1_ready' : follow-up 1 pronto pra enviar (amarelo escuro)
-// - 'fu1_sent'  : follow-up 1 enviado, aguardando F2
-// - 'fu2_ready' : follow-up 2 pronto pra enviar (laranja)
-// - 'fu2_sent'  : follow-up 2 enviado, ciclo encerrado
-// - 'discarded' : descartado manualmente
-// - 'interested': interessado manualmente
+// - 'pending'      : aguardando abordagem (não foi abordado ainda)
+// - 'waiting'      : abordagem feita, aguardando resposta (amarelo claro)
+// - 'fu1_ready'    : follow-up 1 pronto pra enviar (amarelo escuro)
+// - 'fu1_sent'     : follow-up 1 enviado, aguardando F2
+// - 'fu2_ready'    : follow-up 2 pronto pra enviar (laranja)
+// - 'fu2_sent'     : follow-up 2 enviado, ciclo encerrado
+// - 'discarded'    : descartado manualmente (vermelho)
+// - 'no_whatsapp'  : número não está no WhatsApp (cinza, fora do fluxo)
+// - 'interested'   : interessado manualmente
 
 // Calcula quando F1 e F2 ficam prontos (timestamp em ms)
 function calcFollowupTimes(lead) {
@@ -1975,6 +2134,8 @@ function calcFollowupTimes(lead) {
 
 // Retorna o estado atual do lead considerando timestamps + ações manuais
 function getLeadState(lead) {
+  // "Sem WhatsApp" tem prioridade máxima — fica fora do fluxo normal
+  if (lead.noWhatsappAt) return 'no_whatsapp';
   if (lead.discardedAt) return 'discarded';
   if (lead.interestedAt) return 'interested';
   if (!lead.abordagemAt) return 'pending';
@@ -2015,6 +2176,7 @@ function getTimeUntilReady(lead) {
 }
 
 // Verifica periodicamente se algum lead mudou de estado (pra re-renderizar)
+// E dispara notificações quando um lead fica pronto para F1/F2
 let refreshIntervalId = null;
 function startAutoRefresh() {
   if (refreshIntervalId) clearInterval(refreshIntervalId);
@@ -2024,7 +2186,300 @@ function startAutoRefresh() {
       renderLeads();
       renderCounters();
     }
+    // Sempre verifica notificações (mesmo durante timer)
+    checkForReadyLeadsAndNotify();
   }, 60000); // 1 minuto
+}
+
+/* ============ NOTIFICAÇÕES PUSH / PWA ============ */
+// Implementação:
+// - Service Worker (sw.js) registra o app como PWA instalável
+// - Quando o app está aberto, verificamos a cada minuto se algum lead ficou pronto
+// - Se sim: disparamos Notification API + som + vibração
+// - Se o app estiver em segundo plano (SW ativo): registration.showNotification() mostra notificação do sistema
+// - LIMITAÇÃO: notificações com app 100% fechado exigem push server (VAPID + serviço de push).
+//   Sem isso, o Android eventualmente derruba o SW. Por isso o fallback de som+vibração quando o app está aberto.
+
+// Carrega estado de notificações já disparadas (pra não repetir)
+function loadNotifiedStates() {
+  try {
+    notifiedStates = JSON.parse(localStorage.getItem(NOTIFIED_KEY) || '{}');
+  } catch (e) {
+    notifiedStates = {};
+  }
+}
+
+function saveNotifiedStates() {
+  try {
+    localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notifiedStates));
+  } catch (e) {
+    console.warn('Erro ao salvar notifiedStates:', e);
+  }
+}
+
+// Inicializa PWA: registra Service Worker + configura banner de instalação
+async function initPWA() {
+  // Carrega notificações já disparadas
+  loadNotifiedStates();
+
+  // Registra o Service Worker (arquivo sw.js na mesma pasta do index.html)
+  if ('serviceWorker' in navigator) {
+    try {
+      swRegistration = await navigator.serviceWorker.register('sw.js', { scope: './' });
+      console.log('[PWA] Service Worker registrado:', swRegistration.scope);
+    } catch (err) {
+      console.warn('[PWA] Falha ao registrar Service Worker:', err);
+      // Não é fatal — notificações ainda funcionam via Notification API direta
+    }
+  } else {
+    console.warn('[PWA] Service Worker não suportado neste navegador');
+  }
+
+  // Captura o evento beforeinstallprompt (Chrome/Android) para mostrar botão "Instalar"
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showPwaBanner();
+  });
+
+  // Se já está instalado (standalone), esconde o banner
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    console.log('[PWA] App rodando como standalone (instalado)');
+  }
+
+  // Listaeners dos botões do banner PWA
+  const installBtn = document.getElementById('pwa-install-btn');
+  const dismissBtn = document.getElementById('pwa-dismiss-btn');
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log('[PWA] userChoice:', outcome);
+        deferredPrompt = null;
+        hidePwaBanner();
+      } else {
+        // iOS não suporta beforeinstallprompt — mostrar instruções
+        alert('Para instalar no iPhone/iPad:\n\n1. Toque no botão Compartilar (quadrado com seta para cima)\n2. Selecione "Adicionar à Tela de Início"');
+      }
+    });
+  }
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      hidePwaBanner();
+      // Não incomodar de novo por 7 dias
+      localStorage.setItem('pwa_banner_dismissed_at', Date.now().toString());
+    });
+  }
+
+  // Banner de permissão de notificação
+  const notifEnableBtn = document.getElementById('notif-enable-btn');
+  const notifDismissBtn = document.getElementById('notif-dismiss-btn');
+  if (notifEnableBtn) {
+    notifEnableBtn.addEventListener('click', async () => {
+      await requestNotificationPermission();
+      hideNotifPermBanner();
+    });
+  }
+  if (notifDismissBtn) {
+    notifDismissBtn.addEventListener('click', () => {
+      hideNotifPermBanner();
+      localStorage.setItem('notif_perm_dismissed_at', Date.now().toString());
+    });
+  }
+
+  // Mostra banner de permissão se ainda não pediu e não foi dispensado
+  maybeShowNotifPermBanner();
+
+  // Se já tem permissão concedida, esconde o banner
+  if ('Notification' in window && Notification.permission === 'granted') {
+    hideNotifPermBanner();
+  }
+}
+
+function showPwaBanner() {
+  // Respeita o dismiss por 7 dias
+  const dismissedAt = parseInt(localStorage.getItem('pwa_banner_dismissed_at') || '0', 10);
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  if (Date.now() - dismissedAt < sevenDays) return;
+  const banner = document.getElementById('pwa-banner');
+  if (banner) banner.classList.add('show');
+}
+
+function hidePwaBanner() {
+  const banner = document.getElementById('pwa-banner');
+  if (banner) banner.classList.remove('show');
+}
+
+function maybeShowNotifPermBanner() {
+  if (!('Notification' in window)) return; // sem suporte
+  if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+  const dismissedAt = parseInt(localStorage.getItem('notif_perm_dismissed_at') || '0', 10);
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  if (Date.now() - dismissedAt < sevenDays) return;
+  const banner = document.getElementById('notif-perm-banner');
+  if (banner) banner.classList.add('show');
+}
+
+function hideNotifPermBanner() {
+  const banner = document.getElementById('notif-perm-banner');
+  if (banner) banner.classList.remove('show');
+}
+
+// Pede permissão de notificação (deve ser chamado a partir de gesto do usuário)
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    showToast('Este navegador não suporta notificações', 'warning');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    showToast('Notificações já estão ativadas ✓', 'success');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    showToast('Notificações estão bloqueadas. Habilite nas configurações do navegador.', 'warning');
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      showToast('🔔 Notificações ativadas! Você será avisado quando um lead estiver pronto.', 'success');
+      hideNotifPermBanner();
+      // Dispara notificação de teste
+      fireNotification('Notificações ativadas! ✓', 'Você será avisado quando um lead estiver pronto para Follow-up.');
+    } else if (permission === 'denied') {
+      showToast('Notificações bloqueadas. Você pode reativar nas configurações do navegador.', 'warning');
+    }
+  } catch (e) {
+    console.warn('Erro ao pedir permissão de notificação:', e);
+  }
+}
+
+// Dispara uma notificação do sistema (usa Service Worker se disponível, senão Notification API direta)
+async function fireNotification(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const options = {
+    body: body,
+    icon: 'icon.svg',
+    badge: 'icon.svg',
+    tag: 'lead-ready-' + Date.now(),
+    vibrate: [200, 100, 200, 100, 200],
+    requireInteraction: false,
+    data: { url: location.href }
+  };
+  try {
+    if (swRegistration && swRegistration.showNotification) {
+      await swRegistration.showNotification(title, options);
+    } else {
+      const n = new Notification(title, options);
+      n.onclick = () => { window.focus(); n.close(); };
+    }
+  } catch (e) {
+    console.warn('Erro ao mostrar notificação:', e);
+    // Fallback: tenta Notification direta
+    try {
+      const n = new Notification(title, { body, icon: 'icon.svg' });
+      n.onclick = () => { window.focus(); n.close(); };
+    } catch (e2) {
+      console.warn('Notification API também falhou:', e2);
+    }
+  }
+}
+
+// Toca um som curto usando Web Audio API (não precisa de arquivo de áudio)
+let audioCtx = null;
+function playNotificationSound() {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // Se o contexto foi suspenso (política de autoplay), tenta resumir
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    // Sequência de 2 bipes ascendentes
+    const playBeep = (freq, startTime, duration) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
+    const now = audioCtx.currentTime;
+    playBeep(880, now, 0.18);       // Lá5
+    playBeep(1320, now + 0.22, 0.25); // Mi6
+  } catch (e) {
+    console.warn('Erro ao tocar som:', e);
+  }
+}
+
+// Vibra o dispositivo (se suportado)
+function vibrateDevice(pattern = [200, 100, 200, 100, 200]) {
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  } catch (e) {
+    // silencioso
+  }
+}
+
+// Verifica se algum lead ficou pronto para F1 ou F2 desde a última verificação
+// e dispara notificação + som + vibração para os recém-prontos
+function checkForReadyLeadsAndNotify() {
+  if (leads.length === 0) return;
+  let changed = false;
+  let readyCount = 0;
+
+  for (const lead of leads) {
+    // Só verifica leads com telefone válido e que já foram abordados
+    if (!lead.phoneValid) continue;
+    const state = getLeadState(lead);
+    const prev = notifiedStates[lead.id];
+
+    if (state === 'fu1_ready') {
+      if (!prev || prev.state !== 'fu1_ready') {
+        // Recém ficou pronto para F1!
+        const msg = `"${lead.name}" está pronto para Follow-up 1.${lead.city ? ' Cidade: ' + lead.city : ''}`;
+        fireNotification('🔔 Lead pronto para Follow-up 1', msg);
+        playNotificationSound();
+        vibrateDevice();
+        notifiedStates[lead.id] = { state: 'fu1_ready', at: Date.now() };
+        changed = true;
+        readyCount++;
+      }
+    } else if (state === 'fu2_ready') {
+      if (!prev || prev.state !== 'fu2_ready') {
+        // Recém ficou pronto para F2!
+        const msg = `"${lead.name}" está pronto para Follow-up 2.${lead.city ? ' Cidade: ' + lead.city : ''}`;
+        fireNotification('🔔 Lead pronto para Follow-up 2', msg);
+        playNotificationSound();
+        vibrateDevice();
+        notifiedStates[lead.id] = { state: 'fu2_ready', at: Date.now() };
+        changed = true;
+        readyCount++;
+      }
+    } else {
+      // Lead saiu do estado "pronto" (foi enviado ou descartado): limpa o tracking
+      if (prev) {
+        delete notifiedStates[lead.id];
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    saveNotifiedStates();
+    if (readyCount > 0) {
+      console.log(`[Notif] ${readyCount} lead(s) ficaram prontos.`);
+    }
+  }
 }
 
 /* ============ GERAR LINK wa.me ============ */
@@ -2367,7 +2822,7 @@ function renderCounters() {
   const total = leads.length;
   // Conta por estado dinâmico (Parte 4)
   let pending = 0, waiting = 0, fu1Ready = 0, fu1Sent = 0, fu2Ready = 0, fu2Sent = 0;
-  let interested = 0, discarded = 0, invalid = 0;
+  let interested = 0, discarded = 0, invalid = 0, noWhatsapp = 0;
   for (const l of leads) {
     const state = l.phoneValid ? getLeadState(l) : 'invalid';
     if (state === 'pending') pending++;
@@ -2378,6 +2833,7 @@ function renderCounters() {
     else if (state === 'fu2_sent') fu2Sent++;
     else if (state === 'interested') interested++;
     else if (state === 'discarded') discarded++;
+    else if (state === 'no_whatsapp') noWhatsapp++;
     else if (state === 'invalid') invalid++;
   }
 
@@ -2390,10 +2846,13 @@ function renderCounters() {
   setCounter('c-discarded', discarded);
 
   // Resumo de atividade hoje
+  // IMPORTANTE: leads marcados como "no_whatsapp" NÃO contam como envio real
+  // (não somam em abordagens/follow-ups de hoje, mesmo se o timestamp for de hoje)
   const today = new Date();
   const todayStr = today.toDateString();
   let todayAbordagens = 0, todayFu1 = 0, todayFu2 = 0, todayInterested = 0;
   for (const l of leads) {
+    if (l.noWhatsappAt) continue; // exclui leads sem WhatsApp das estatísticas do dia
     if (l.abordagemAt && new Date(l.abordagemAt).toDateString() === todayStr) todayAbordagens++;
     if (l.followup1At && new Date(l.followup1At).toDateString() === todayStr) todayFu1++;
     if (l.followup2At && new Date(l.followup2At).toDateString() === todayStr) todayFu2++;
@@ -2463,7 +2922,7 @@ function applyFiltersAndSort() {
     } else if (filters.stateFilter === 'interested') {
       result = result.filter(l => getLeadState(l) === 'interested');
     } else if (filters.stateFilter === 'discarded') {
-      result = result.filter(l => getLeadState(l) === 'discarded');
+      result = result.filter(l => getLeadState(l) === 'discarded' || getLeadState(l) === 'no_whatsapp');
     }
     // 'total' não filtra
   }
@@ -2525,6 +2984,11 @@ function renderLeads() {
     const state = l.phoneValid ? getLeadState(l) : 'invalid';
     const isLocked = timerState.active && timerState.clickedLeadId !== l.id;
 
+    // Verifica se este lead foi o último actionado (para mostrar botão "Número não está no WhatsApp")
+    const isLastActioned = lastActionedLeadId === l.id &&
+                           (Date.now() - lastActionedAt) < ACTION_WINDOW_MS &&
+                           lastActionType;
+
     // Classe do card
     let cardClass = '';
     if (state === 'invalid') cardClass = 'invalid';
@@ -2535,8 +2999,9 @@ function renderLeads() {
     else if (state === 'fu2_ready') cardClass = 'status-fu2-ready';
     else if (state === 'fu2_sent') cardClass = 'status-fu2-sent';
     else if (state === 'discarded') cardClass = 'status-discarded';
+    else if (state === 'no_whatsapp') cardClass = 'status-no-whatsapp';
     else if (state === 'interested') cardClass = 'status-interested';
-    if (isLocked && state !== 'discarded' && state !== 'interested') cardClass += ' is-locked';
+    if (isLocked && state !== 'discarded' && state !== 'interested' && state !== 'no_whatsapp') cardClass += ' is-locked';
 
     // Links wa.me conforme estado
     const abordagemLink = l.phoneValid ? buildWaLink(l.phone, config.mensagemAbordagem) : '';
@@ -2547,6 +3012,8 @@ function renderLeads() {
     let statusBadge;
     if (state === 'invalid') {
       statusBadge = '<span class="lead-status status-invalid">Sem WhatsApp válido</span>';
+    } else if (state === 'no_whatsapp') {
+      statusBadge = '<span class="lead-status status-no-whatsapp">Sem WhatsApp</span>';
     } else if (state === 'discarded') {
       statusBadge = '<span class="lead-status status-discarded">Descartado</span>';
     } else if (state === 'interested') {
@@ -2570,15 +3037,27 @@ function renderLeads() {
     // Bloco de ações principal
     let actionsHtml = '';
     let miniActionsHtml = '';
+    let noWhatsappBtnHtml = '';
 
-    if (state === 'invalid') {
+    // Botão "Número não está no WhatsApp" — só aparece no lead recém-actionado
+    if (isLastActioned) {
+      noWhatsappBtnHtml = `<button class="btn-no-whatsapp" data-no-whatsapp="${l.id}" data-action-type="${lastActionType}">
+        ✕ Número não está no WhatsApp
+      </button>`;
+    }
+
+    if (state === 'no_whatsapp' || state === 'discarded' || state === 'interested') {
+      // Estados terminais: só botão de desfazer
+      miniActionsHtml = `<div class="lead-mini-actions">
+        <button class="btn-mini btn-undo" data-undo="${l.id}">↺ Desfazer</button>
+      </div>`;
+    } else if (state === 'invalid') {
       actionsHtml = `<div class="lead-actions">
         <div class="lead-link disabled">Telefone inválido</div>
       </div>`;
-    } else if (state === 'discarded' || state === 'interested') {
-      // Mostra só botão de desfazer
+      // Mesmo telefones inválidos podem ser descartados
       miniActionsHtml = `<div class="lead-mini-actions">
-        <button class="btn-mini btn-undo" data-undo="${l.id}">↺ Desfazer</button>
+        <button class="btn-mini btn-discard" data-discard="${l.id}">✕ Descartar</button>
       </div>`;
     } else if (isLocked) {
       actionsHtml = `<div class="lead-actions">
@@ -2621,26 +3100,34 @@ function renderLeads() {
         </button>
       </div>`;
 
-      // Mini ações (descartar / interessado) — só para leads em ciclo ativo
+      // Mini ações: Descartar SEMPRE disponível (em qualquer etapa, inclusive fu2_sent)
+      // Interessado só para leads em ciclo ativo
       if (state !== 'fu2_sent') {
         miniActionsHtml = `<div class="lead-mini-actions">
           <button class="btn-mini btn-discard" data-discard="${l.id}">✕ Descartar</button>
           <button class="btn-mini btn-interest" data-interest="${l.id}">✓ Interessado</button>
+        </div>`;
+      } else {
+        // Mesmo ciclo encerrado pode ser descartado
+        miniActionsHtml = `<div class="lead-mini-actions">
+          <button class="btn-mini btn-discard" data-discard="${l.id}">✕ Descartar</button>
         </div>`;
       }
     }
 
     // Info de timestamps (abordagem, F1, F2)
     let timestampsHtml = '';
-    if (l.abordagemAt) {
+    if (l.abordagemAt || l.noWhatsappAt) {
       const fmt = (iso) => {
         const d = new Date(iso);
         return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' +
                d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       };
-      const parts = [`📨 Abordagem: <b>${fmt(l.abordagemAt)}</b>`];
+      const parts = [];
+      if (l.abordagemAt) parts.push(`📨 Abordagem: <b>${fmt(l.abordagemAt)}</b>`);
       if (l.followup1At) parts.push(`F1: <b>${fmt(l.followup1At)}</b>`);
       if (l.followup2At) parts.push(`F2: <b>${fmt(l.followup2At)}</b>`);
+      if (l.noWhatsappAt) parts.push(`✕ Sem WhatsApp: <b>${fmt(l.noWhatsappAt)}</b>`);
       timestampsHtml = `<div class="lead-meta" style="margin-top:6px;font-size:11px;opacity:0.7;flex-direction:column;align-items:flex-start;gap:2px">
         ${parts.map(p => `<span class="item">${p}</span>`).join('')}
       </div>`;
@@ -2673,6 +3160,7 @@ function renderLeads() {
           ${l.websiteRaw ? `<span class="item" style="font-size:11px;word-break:break-all;opacity:.7">${escapeHTML(l.websiteRaw)}</span>` : ''}
         </div>
         ${actionsHtml}
+        ${noWhatsappBtnHtml}
         ${miniActionsHtml}
         ${countdownHtml}
         ${timestampsHtml}
@@ -2801,6 +3289,11 @@ async function handleApproachClick(leadId, waLink) {
     }
   }
 
+  // Marca como último actionado (para mostrar botão "Número não está no WhatsApp")
+  lastActionedLeadId = leadId;
+  lastActionedAt = Date.now();
+  lastActionType = 'abordagem';
+
   // Abre o WhatsApp em nova aba
   window.open(waLink, '_blank', 'noopener,noreferrer');
 
@@ -2808,6 +3301,7 @@ async function handleApproachClick(leadId, waLink) {
   startApproachTimer(leadId);
 
   showToast('📨 Abordagem registrada! WhatsApp aberto em nova aba.', 'success');
+  renderLeads();
 }
 
 /* ============ BIND AÇÕES DOS LEADS ============ */
@@ -2860,15 +3354,28 @@ function bindLeadActions() {
     });
   });
 
-  // Botão "Descartar"
+  // Botão "Descartar" (agora disponível em qualquer etapa)
   document.querySelectorAll('.btn-mini[data-discard]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       const leadId = btn.getAttribute('data-discard');
       if (!leadId) return;
-      if (!confirm('Marcar este lead como DESCARTADO? O ciclo de follow-up será interrompido.')) return;
+      if (!confirm('Tem certeza que quer descartar este lead?')) return;
       await markLeadStatus(leadId, 'discarded');
+    });
+  });
+
+  // Botão "Número não está no WhatsApp" (aparece só no lead recém-actionado)
+  document.querySelectorAll('.btn-no-whatsapp[data-no-whatsapp]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const leadId = btn.getAttribute('data-no-whatsapp');
+      const actionType = btn.getAttribute('data-action-type') || 'abordagem';
+      if (!leadId) return;
+      if (!confirm('Marcar este lead como "Número não está no WhatsApp"? Ele será removido da contagem de hoje e sairá do fluxo de follow-up.')) return;
+      await markLeadAsNoWhatsapp(leadId, actionType);
     });
   });
 
@@ -2955,11 +3462,18 @@ async function handleFollowupClick(leadId, waLink, followupNum) {
       setSyncStatus('offline', 'Erro de sync');
     }
   }
+
+  // Marca como último actionado (para mostrar botão "Número não está no WhatsApp")
+  lastActionedLeadId = leadId;
+  lastActionedAt = Date.now();
+  lastActionType = followupNum === 1 ? 'fu1' : 'fu2';
+
   // Abre o WhatsApp em nova aba
   window.open(waLink, '_blank', 'noopener,noreferrer');
   // Inicia o timer que trava os OUTROS leads
   startApproachTimer(leadId);
   showToast(`📨 Follow-up ${followupNum} enviado! WhatsApp aberto.`, 'success');
+  renderLeads();
 }
 
 async function markLeadStatus(leadId, newStatus) {
@@ -2969,10 +3483,12 @@ async function markLeadStatus(leadId, newStatus) {
   if (newStatus === 'discarded') {
     lead.discardedAt = now;
     lead.interestedAt = null;
+    lead.noWhatsappAt = null;
     lead.status = 'discarded';
   } else if (newStatus === 'interested') {
     lead.interestedAt = now;
     lead.discardedAt = null;
+    lead.noWhatsappAt = null;
     lead.status = 'interested';
   }
   saveLocalCache();
@@ -2980,8 +3496,8 @@ async function markLeadStatus(leadId, newStatus) {
   if (_sb && currentUser) {
     try {
       const updates = newStatus === 'discarded'
-        ? { discarded_at: now, interested_at: null, status: 'discarded' }
-        : { interested_at: now, discarded_at: null, status: 'interested' };
+        ? { discarded_at: now, interested_at: null, no_whatsapp_at: null, status: 'discarded' }
+        : { interested_at: now, discarded_at: null, no_whatsapp_at: null, status: 'interested' };
       const { error } = await _sb.from('leads').update(updates).eq('id', leadId);
       if (error) throw error;
       setSyncStatus('online', 'Sincronizado');
@@ -2995,17 +3511,60 @@ async function markLeadStatus(leadId, newStatus) {
   showToast(msg, newStatus === 'discarded' ? 'warning' : 'success');
 }
 
+// Marca lead como "Sem WhatsApp" (número não está no WhatsApp)
+// Remove o lead da contagem de abordagens/follow-ups de hoje e tira do fluxo normal.
+async function markLeadAsNoWhatsapp(leadId, actionType) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const now = new Date().toISOString();
+  lead.noWhatsappAt = now;
+  lead.discardedAt = null;
+  lead.interestedAt = null;
+  lead.status = 'no_whatsapp';
+  saveLocalCache();
+  // Atualiza na nuvem
+  if (_sb && currentUser) {
+    try {
+      const updates = {
+        no_whatsapp_at: now,
+        discarded_at: null,
+        interested_at: null,
+        status: 'no_whatsapp'
+      };
+      const { error } = await _sb.from('leads').update(updates).eq('id', leadId);
+      if (error) {
+        // Se a coluna no_whatsapp_at não existir, mostra erro claro pro usuário
+        console.error('Erro ao marcar "Sem WhatsApp" na nuvem:', error);
+        setSyncStatus('offline', 'Erro de sync');
+        showToast('⚠ Erro ao salvar. Execute o SQL: ALTER TABLE leads ADD COLUMN no_whatsapp_at TIMESTAMPTZ;', 'warning');
+        return;
+      }
+      setSyncStatus('online', 'Sincronizado');
+    } catch (err) {
+      console.error('Erro ao marcar "Sem WhatsApp":', err);
+      setSyncStatus('offline', 'Erro de sync');
+    }
+  }
+  // Limpa o estado de "último actionado"
+  lastActionedLeadId = null;
+  lastActionedAt = 0;
+  lastActionType = null;
+  renderAll();
+  showToast('✕ Lead marcado como "Sem WhatsApp". Removido da contagem de hoje.', 'warning');
+}
+
 async function undoLeadStatus(leadId) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead) return;
   lead.discardedAt = null;
   lead.interestedAt = null;
+  lead.noWhatsappAt = null;
   // Recalcula status baseado em timestamps existentes
   lead.status = getLeadState(lead);
   saveLocalCache();
   if (_sb && currentUser) {
     try {
-      const updates = { discarded_at: null, interested_at: null, status: lead.status };
+      const updates = { discarded_at: null, interested_at: null, no_whatsapp_at: null, status: lead.status };
       const { error } = await _sb.from('leads').update(updates).eq('id', leadId);
       if (error) throw error;
       setSyncStatus('online', 'Sincronizado');
@@ -3346,6 +3905,9 @@ window.addEventListener('error', (e) => {
     populateConfigForm();
     // Inicia auto-refresh (Pra detectar mudanças de estado dos leads ao longo do tempo)
     startAutoRefresh();
+    // Inicializa PWA (Service Worker + banners de instalação/notificação)
+    // Não bloqueia o resto da inicialização se falhar
+    initPWA().catch(err => console.warn('[Init] initPWA falhou:', err));
     // Mostra banner de aviso se estiver rodando em iframe (preview embutida)
     if (isInIframe()) {
       document.getElementById('iframe-banner').classList.remove('hidden');
@@ -3366,6 +3928,8 @@ window.addEventListener('error', (e) => {
         if (raw) leads = JSON.parse(raw) || [];
       } catch (e) {}
       renderAll();
+      // Verifica notificações ao carregar (pra caso tenha lead pronto enquanto app estava fechado)
+      setTimeout(checkForReadyLeadsAndNotify, 2000);
       return;
     }
     console.log('[Init] Supabase inicializado ✓');
@@ -3389,17 +3953,31 @@ window.addEventListener('error', (e) => {
       renderAll();
     }
 
+    // Após carregar leads, verifica se algum já está pronto pra notificar
+    // (ex: app ficou fechado e um lead ficou pronto enquanto isso)
+    setTimeout(checkForReadyLeadsAndNotify, 3000);
+
     // Online/offline detection
     window.addEventListener('online', () => {
       isOnline = true;
       if (currentUser) {
         setSyncStatus('syncing', 'Reconectando...');
-        loadState().then(() => setSyncStatus('online', 'Sincronizado'));
+        loadState().then(() => {
+          setSyncStatus('online', 'Sincronizado');
+          checkForReadyLeadsAndNotify();
+        });
       }
     });
     window.addEventListener('offline', () => {
       isOnline = false;
       if (currentUser) setSyncStatus('offline', 'Offline');
+    });
+
+    // Re-verifica notificações quando a aba volta a ficar visível
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkForReadyLeadsAndNotify();
+      }
     });
 
     console.log('[Init] App inicializado. User:', currentUser?.email || 'não logado');

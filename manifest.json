@@ -1,0 +1,33 @@
+{
+  "name": "Prospecção WhatsApp - Elevo Leads",
+  "short_name": "Elevo Leads",
+  "description": "Rastreamento de leads para WhatsApp com follow-ups automáticos e notificações.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0A",
+  "theme_color": "#1A4B8C",
+  "lang": "pt-BR",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver leads prontos para F1",
+      "short_name": "F1 pronto",
+      "url": "./index.html?filter=fu1_ready"
+    },
+    {
+      "name": "Ver leads prontos para F2",
+      "short_name": "F2 pronto",
+      "url": "./index.html?filter=fu2_ready"
+    }
+  ]
+}
