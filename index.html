@@ -1167,31 +1167,44 @@
   .pinned-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 10px;
   }
   .pinned-actions .btn-pinned {
-    padding: 11px 8px;
+    padding: 14px 8px;
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     cursor: pointer;
     border: 1px solid;
-    min-height: 42px;
+    min-height: 52px;          /* maior alvo de toque p/ dedo */
     display: flex;
+    flex-direction: column;    /* ícone em cima, texto embaixo */
     align-items: center;
     justify-content: center;
     gap: 4px;
+    line-height: 1.15;
+  }
+  .pinned-actions .btn-pinned .ico {
+    font-size: 18px;
+    line-height: 1;
   }
   .pinned-actions .btn-pinned:active { transform: scale(0.97); }
+  /* Botão principal (Reenviar/F1/F2) — full-width, destaque azul */
   .pinned-actions .btn-pinned-approach {
     background: var(--accent);
     color: #fff;
     border-color: var(--accent);
     grid-column: span 2;
+    min-height: 56px;
+    flex-direction: row;
+    font-size: 14px;
+    gap: 8px;
   }
+  .pinned-actions .btn-pinned-approach .ico { font-size: 20px; }
+  /* Sem WhatsApp (cinza tracejado) */
   .pinned-actions .btn-pinned-no-wa {
     background: transparent;
     color: #B0B0B0;
@@ -1199,26 +1212,55 @@
     border-style: dashed;
   }
   .pinned-actions .btn-pinned-no-wa:hover { background: rgba(106, 106, 106, 0.15); }
+  /* Descartar (vermelho) */
   .pinned-actions .btn-pinned-discard {
     background: transparent;
     color: var(--danger);
     border-color: var(--danger);
   }
   .pinned-actions .btn-pinned-discard:hover { background: var(--danger-bg); }
+  /* Interessado (verde) */
   .pinned-actions .btn-pinned-interest {
     background: transparent;
     color: var(--success);
     border-color: var(--success);
   }
   .pinned-actions .btn-pinned-interest:hover { background: var(--success-bg); }
+  /* Desafixar (cinza, full-width, menor) */
   .pinned-actions .btn-pinned-unpin {
     background: var(--bg-elevated);
     color: var(--text-muted);
     border-color: var(--border);
     grid-column: span 2;
-    font-size: 11px;
+    min-height: 44px;
+    font-size: 12px;
+    flex-direction: row;
+    gap: 6px;
   }
   .pinned-actions .btn-pinned-unpin:hover { background: var(--bg-card-hover); }
+  /* Desfazer status (em estado terminal) */
+  .pinned-actions .btn-pinned-undo {
+    background: var(--bg-elevated);
+    color: var(--text);
+    border-color: var(--border);
+    grid-column: span 2;
+    min-height: 48px;
+    flex-direction: row;
+    gap: 6px;
+  }
+  .pinned-actions .btn-pinned-undo:hover { background: var(--bg-card-hover); }
+
+  /* Aviso "Ciclo encerrado" no pino */
+  .pinned-actions .pinned-cycle-ended {
+    grid-column: span 2;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 12px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+  }
 
   /* Contadores "hoje" clicáveis */
   .today-item {
@@ -1302,6 +1344,91 @@
     font-size: 16px;
     flex-shrink: 0;
   }
+
+  /* ============ BLOCO DE NOTIFICAÇÕES (no painel de config) ============ */
+  .notif-config-block {
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .notif-config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .notif-status {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .notif-status.on {
+    background: var(--success-bg);
+    color: #6BC16F;
+  }
+  .notif-status.off {
+    background: var(--danger-bg);
+    color: #EF6666;
+  }
+  .notif-status.pending {
+    background: var(--warning-bg);
+    color: #FFD54F;
+  }
+  .notif-status.unsupported {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+  }
+  .notif-config-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    line-height: 1.45;
+  }
+  .notif-config-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  @media (max-width: 480px) {
+    .notif-config-actions { grid-template-columns: 1fr; }
+  }
+  .btn-notif-enable, .btn-notif-test {
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 44px;
+    border: 1px solid;
+  }
+  .btn-notif-enable {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-notif-enable:active { transform: scale(0.97); }
+  .btn-notif-enable:disabled {
+    background: var(--bg-elevated);
+    color: var(--text-dim);
+    border-color: var(--border);
+    cursor: not-allowed;
+  }
+  .btn-notif-test {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-notif-test:active { transform: scale(0.97); }
 
   /* Banner de permissão de notificação */
   .notif-perm-banner {
@@ -1526,6 +1653,21 @@
     <div class="config-save-row">
       <button class="btn-config-save" id="cfg-save">💾 Salvar configurações</button>
       <button class="btn-config-reset" id="cfg-reset">↺ Restaurar padrão</button>
+    </div>
+
+    <!-- Bloco de Notificações -->
+    <div class="notif-config-block">
+      <div class="notif-config-header">
+        <span>🔔 Notificações</span>
+        <span class="notif-status" id="notif-status-badge">Verificando...</span>
+      </div>
+      <p class="notif-config-desc">
+        Receba um aviso quando o tempo de espera entre abordagens acabar e você puder mandar a próxima mensagem.
+      </p>
+      <div class="notif-config-actions">
+        <button class="btn-notif-enable" id="cfg-notif-enable">🔔 Ativar notificações</button>
+        <button class="btn-notif-test" id="cfg-notif-test">🔊 Testar som e notificação</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2406,6 +2548,70 @@ async function initPWA() {
   if ('Notification' in window && Notification.permission === 'granted') {
     hideNotifPermBanner();
   }
+
+  // Botões do bloco de Notificações no painel de configurações
+  const cfgNotifEnable = document.getElementById('cfg-notif-enable');
+  const cfgNotifTest = document.getElementById('cfg-notif-test');
+  if (cfgNotifEnable) {
+    cfgNotifEnable.addEventListener('click', async () => {
+      await requestNotificationPermission();
+      updateNotifStatusBadge();
+    });
+  }
+  if (cfgNotifTest) {
+    cfgNotifTest.addEventListener('click', () => {
+      // Toca o som SEMPRE (mesmo sem permissão de notificação)
+      playNotificationSound();
+      vibrateDevice();
+      // Dispara notificação do sistema (só aparece se tiver permissão)
+      fireNotification(
+        '🔔 Notificação de teste',
+        'Se você está vendo isto, as notificações estão funcionando! Quando o timer acabar, vai aparecer uma igual.'
+      );
+      showToast('🔊 Som + vibração + notificação disparados', 'success');
+    });
+  }
+
+  // Atualiza o badge de status na primeira carga
+  updateNotifStatusBadge();
+}
+
+// Atualiza o badge "ON / OFF / Pendente" no painel de config
+function updateNotifStatusBadge() {
+  const badge = document.getElementById('notif-status-badge');
+  const enableBtn = document.getElementById('cfg-notif-enable');
+  if (!badge) return;
+
+  if (!('Notification' in window)) {
+    badge.textContent = 'Não suportado';
+    badge.className = 'notif-status unsupported';
+    if (enableBtn) enableBtn.disabled = true;
+    return;
+  }
+
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    badge.textContent = '● Ativadas';
+    badge.className = 'notif-status on';
+    if (enableBtn) {
+      enableBtn.disabled = true;
+      enableBtn.textContent = '✓ Notificações ativadas';
+    }
+  } else if (perm === 'denied') {
+    badge.textContent = '● Bloqueadas';
+    badge.className = 'notif-status off';
+    if (enableBtn) {
+      enableBtn.disabled = true;
+      enableBtn.textContent = '🔒 Bloqueado no navegador';
+    }
+  } else {
+    badge.textContent = '● Pendente';
+    badge.className = 'notif-status pending';
+    if (enableBtn) {
+      enableBtn.disabled = false;
+      enableBtn.textContent = '🔔 Ativar notificações';
+    }
+  }
 }
 
 function showPwaBanner() {
@@ -3098,27 +3304,29 @@ function renderPinnedLead() {
   let reenviarBtn = '';
   if (state === 'no_whatsapp' || state === 'discarded' || state === 'interested') {
     // Em estado terminal: botão Desfazer no lugar do Reenviar
-    reenviarBtn = `<button class="btn-pinned btn-pinned-unpin" data-pinned-undo="${lead.id}">↺ Desfazer status</button>`;
+    reenviarBtn = `<button class="btn-pinned btn-pinned-undo" data-pinned-undo="${lead.id}">
+      <span class="ico">↺</span><span>Desfazer status</span>
+    </button>`;
   } else if (state === 'invalid') {
     reenviarBtn = ''; // não dá pra reenviar sem telefone válido
   } else if (state === 'pending') {
     reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-approach="${lead.id}" data-wa-link="${abordagemLink}">
-      <span class="wa-ico-big"></span> Mandar Abordagem
+      <span class="ico">📨</span><span>Mandar Abordagem</span>
     </button>`;
   } else if (state === 'fu1_ready') {
     reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-followup1="${lead.id}" data-wa-link="${fu1Link}">
-      <span class="wa-ico-big"></span> Enviar Follow-up 1
+      <span class="ico">📨</span><span>Enviar Follow-up 1</span>
     </button>`;
   } else if (state === 'fu2_ready') {
     reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-followup2="${lead.id}" data-wa-link="${fu2Link}">
-      <span class="wa-ico-big"></span> Enviar Follow-up 2
+      <span class="ico">📨</span><span>Enviar Follow-up 2</span>
     </button>`;
   } else if (state === 'waiting' || state === 'fu1_sent') {
     reenviarBtn = `<button class="btn-pinned btn-pinned-approach" data-pinned-approach="${lead.id}" data-wa-link="${abordagemLink}">
-      <span class="wa-ico-big"></span> Reenviar abordagem
+      <span class="ico">📨</span><span>Reenviar abordagem</span>
     </button>`;
   } else if (state === 'fu2_sent') {
-    reenviarBtn = `<div style="text-align:center;font-size:11px;color:var(--text-muted);padding:8px;border:1px dashed var(--border);border-radius:8px;grid-column:span 2">Ciclo encerrado</div>`;
+    reenviarBtn = `<div class="pinned-cycle-ended">✓ Ciclo encerrado</div>`;
   }
 
   // Botões de ação rápida (só aparecem se o lead NÃO está em estado terminal)
@@ -3126,25 +3334,25 @@ function renderPinnedLead() {
   if (state !== 'no_whatsapp' && state !== 'discarded' && state !== 'interested') {
     actionBtns = `
       <button class="btn-pinned btn-pinned-no-wa" data-pinned-no-wa="${lead.id}">
-        ✕ Sem WhatsApp
+        <span class="ico">✕</span><span>Sem WhatsApp</span>
       </button>
       <button class="btn-pinned btn-pinned-discard" data-pinned-discard="${lead.id}">
-        ✕ Descartar
+        <span class="ico">✕</span><span>Descartar</span>
       </button>
       ${state !== 'fu2_sent' && state !== 'invalid' ? `
         <button class="btn-pinned btn-pinned-interest" data-pinned-interest="${lead.id}">
-          ✓ Interessado
+          <span class="ico">✓</span><span>Interessado</span>
         </button>
       ` : ''}
       <button class="btn-pinned btn-pinned-unpin" data-pinned-unpin="${lead.id}">
-        ↥ Desafixar do topo
+        <span class="ico">↥</span><span>Desafixar do topo</span>
       </button>
     `;
   } else {
     // Em estado terminal: só Desafixar (além do Desfazer já no reenviarBtn)
     actionBtns = `
       <button class="btn-pinned btn-pinned-unpin" data-pinned-unpin="${lead.id}">
-        ↥ Desafixar do topo
+        <span class="ico">↥</span><span>Desafixar do topo</span>
       </button>
     `;
   }
