@@ -1357,7 +1357,7 @@
 <!-- BANNER: Permissão de notificações -->
 <div class="notif-perm-banner" id="notif-perm-banner">
   <span class="txt">
-    🔔 <b>Ative as notificações</b> para ser avisado quando um lead estiver pronto para Follow-up 1 ou 2.
+    🔔 <b>Ative as notificações</b> para ser avisado quando o tempo de espera entre abordagens acabar e você puder mandar a próxima mensagem.
   </span>
   <button class="enable-btn" id="notif-enable-btn">Permitir</button>
   <button class="dismiss" id="notif-dismiss-btn">×</button>
@@ -1730,12 +1730,9 @@ function clearPinnedLead() {
   savePinnedLead();
 }
 
-// ============ ESTADO: notificações e PWA ============
-let notifiedStates = {};           // { leadId: { state: 'fu1_ready'|'fu2_ready', at: ms } }
-const NOTIFIED_KEY = 'leads_notified_states_v1';
+// ============ ESTADO: PWA ============
 let swRegistration = null;         // Service Worker registration
 let deferredPrompt = null;         // evento beforeinstallprompt
-let notifPermissionAsked = false;  // já pediu permissão nesta sessão?
 
 /* ============ INICIALIZAÇÃO SUPABASE ============ */
 function setConnStatus(state, text) {
@@ -2312,7 +2309,7 @@ function getTimeUntilReady(lead) {
 }
 
 // Verifica periodicamente se algum lead mudou de estado (pra re-renderizar)
-// E dispara notificações quando um lead fica pronto para F1/F2
+// As notificações agora são disparadas diretamente pelo fim do timer (finishApproachTimer)
 let refreshIntervalId = null;
 function startAutoRefresh() {
   if (refreshIntervalId) clearInterval(refreshIntervalId);
@@ -2322,41 +2319,19 @@ function startAutoRefresh() {
       renderLeads();
       renderCounters();
     }
-    // Sempre verifica notificações (mesmo durante timer)
-    checkForReadyLeadsAndNotify();
   }, 60000); // 1 minuto
 }
 
 /* ============ NOTIFICAÇÕES PUSH / PWA ============ */
 // Implementação:
 // - Service Worker (sw.js) registra o app como PWA instalável
-// - Quando o app está aberto, verificamos a cada minuto se algum lead ficou pronto
-// - Se sim: disparamos Notification API + som + vibração
-// - Se o app estiver em segundo plano (SW ativo): registration.showNotification() mostra notificação do sistema
+// - Quando o timer entre abordagens termina, dispara notificação do sistema + som + vibração
+//   (chamado por finishApproachTimer() — não há mais polling de "lead pronto")
 // - LIMITAÇÃO: notificações com app 100% fechado exigem push server (VAPID + serviço de push).
 //   Sem isso, o Android eventualmente derruba o SW. Por isso o fallback de som+vibração quando o app está aberto.
 
-// Carrega estado de notificações já disparadas (pra não repetir)
-function loadNotifiedStates() {
-  try {
-    notifiedStates = JSON.parse(localStorage.getItem(NOTIFIED_KEY) || '{}');
-  } catch (e) {
-    notifiedStates = {};
-  }
-}
-
-function saveNotifiedStates() {
-  try {
-    localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notifiedStates));
-  } catch (e) {
-    console.warn('Erro ao salvar notifiedStates:', e);
-  }
-}
-
 // Inicializa PWA: registra Service Worker + configura banner de instalação
 async function initPWA() {
-  // Carrega notificações já disparadas
-  loadNotifiedStates();
 
   // Registra o Service Worker (arquivo sw.js na mesma pasta do index.html)
   if ('serviceWorker' in navigator) {
@@ -2479,10 +2454,10 @@ async function requestNotificationPermission() {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      showToast('🔔 Notificações ativadas! Você será avisado quando um lead estiver pronto.', 'success');
+      showToast('🔔 Notificações ativadas! Você será avisado quando o timer acabar e puder abordar outro lead.', 'success');
       hideNotifPermBanner();
       // Dispara notificação de teste
-      fireNotification('Notificações ativadas! ✓', 'Você será avisado quando um lead estiver pronto para Follow-up.');
+      fireNotification('Notificações ativadas! ✓', 'Você será avisado quando o tempo de espera acabar e puder mandar outra abordagem.');
     } else if (permission === 'denied') {
       showToast('Notificações bloqueadas. Você pode reativar nas configurações do navegador.', 'warning');
     }
@@ -2566,56 +2541,25 @@ function vibrateDevice(pattern = [200, 100, 200, 100, 200]) {
   }
 }
 
-// Verifica se algum lead ficou pronto para F1 ou F2 desde a última verificação
-// e dispara notificação + som + vibração para os recém-prontos
+// ============================================================
+// NOTIFICAÇÕES
+// ============================================================
+// A única notificação relevante é: "Timer acabou — pode abordar outro lead"
+// Essa notificação é disparada diretamente por finishApproachTimer() abaixo.
+// Não há mais checagem periódica de "lead pronto para F1/F2".
+// Esta função é mantida como no-op por compatibilidade com as chamadas existentes.
 function checkForReadyLeadsAndNotify() {
-  if (leads.length === 0) return;
-  let changed = false;
-  let readyCount = 0;
+  // No-op: notificações agora são disparadas pelo fim do timer, não por polling.
+}
 
-  for (const lead of leads) {
-    // Só verifica leads com telefone válido e que já foram abordados
-    if (!lead.phoneValid) continue;
-    const state = getLeadState(lead);
-    const prev = notifiedStates[lead.id];
-
-    if (state === 'fu1_ready') {
-      if (!prev || prev.state !== 'fu1_ready') {
-        // Recém ficou pronto para F1!
-        const msg = `"${lead.name}" está pronto para Follow-up 1.${lead.city ? ' Cidade: ' + lead.city : ''}`;
-        fireNotification('🔔 Lead pronto para Follow-up 1', msg);
-        playNotificationSound();
-        vibrateDevice();
-        notifiedStates[lead.id] = { state: 'fu1_ready', at: Date.now() };
-        changed = true;
-        readyCount++;
-      }
-    } else if (state === 'fu2_ready') {
-      if (!prev || prev.state !== 'fu2_ready') {
-        // Recém ficou pronto para F2!
-        const msg = `"${lead.name}" está pronto para Follow-up 2.${lead.city ? ' Cidade: ' + lead.city : ''}`;
-        fireNotification('🔔 Lead pronto para Follow-up 2', msg);
-        playNotificationSound();
-        vibrateDevice();
-        notifiedStates[lead.id] = { state: 'fu2_ready', at: Date.now() };
-        changed = true;
-        readyCount++;
-      }
-    } else {
-      // Lead saiu do estado "pronto" (foi enviado ou descartado): limpa o tracking
-      if (prev) {
-        delete notifiedStates[lead.id];
-        changed = true;
-      }
-    }
-  }
-
-  if (changed) {
-    saveNotifiedStates();
-    if (readyCount > 0) {
-      console.log(`[Notif] ${readyCount} lead(s) ficaram prontos.`);
-    }
-  }
+// Dispara a notificação "pode abordar outro lead" quando o timer termina
+function notifyTimerEnded() {
+  fireNotification(
+    '⏱ Pode abordar outro lead!',
+    'O tempo de espera entre abordagens acabou. Você já pode mandar a próxima mensagem.'
+  );
+  playNotificationSound();
+  vibrateDevice();
 }
 
 /* ============ GERAR LINK wa.me ============ */
@@ -3565,6 +3509,8 @@ function finishApproachTimer() {
   document.getElementById('timer-overlay').classList.add('hidden');
   renderLeads();
   showToast('⏱ Pode abordar outro lead agora!', 'success');
+  // Dispara notificação do sistema + som + vibração
+  notifyTimerEnded();
 }
 
 // Skip manual (caso o usuário queira pular a espera)
